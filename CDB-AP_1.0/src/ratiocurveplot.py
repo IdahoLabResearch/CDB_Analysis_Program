@@ -43,10 +43,16 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
     def refresh(self, *args):
         try:
             self.update_dropdown()
-
             super().refresh()
+            # self.showed_no_data_warning = False
         except ValueError:
-            tk.messagebox.showerror("Error", "Please load data first")
+            # Check if this is the first time that this warning appears to patch the problem that the program
+            # goes through this function multiple times when the messagebox is used, causing the error message
+            # to pop up multiple times each click
+            if not self.showed_no_data_warning:
+                self.showed_no_data_warning = True
+                print("VALUE ERROR")  # / todo deleted
+                tk.messagebox.showerror("Error", "Please load data first")
 
         # store the parameters that were used for this instance.
         # the only data this affects is the ratio curves so we only need to save it here
@@ -105,7 +111,6 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
                 #     color = self.data_container.color[col].get()
                 self.ax.plot(df['x'], df[col], label=self.data_container.get('label', col), linewidth=p.LINE_WIDTH,
                              color=self.data_container.color[col].get())
-
         if self.fold_value_changed:
             names = ('ymin', 'ymax', 'xmin', 'xmax')
             if self.data_container.inputs["FoldingState"].get():
@@ -136,3 +141,4 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
         self.ax.set_ylabel("Counts", fontsize=p.LABEL_FONT_SIZE)
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': p.LEGEND_FONT_SIZE})
         self.canvas.draw()
+        self.showed_no_data_warning = False  # Reset the error warning for no data once data has been loaded

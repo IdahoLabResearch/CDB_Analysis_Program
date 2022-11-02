@@ -44,6 +44,12 @@ class PlotWindow(tk.Frame):
 
         # refresh each page as you click on them
         self.bind("<FocusIn>", self.refresh)
+        # When clicking on a tab without any data loaded, this code runs through the refresh functions several times,
+        # causing a "No data" warning to pop up several times, including when navigating away from that tab. This
+        # variable tracks whether the warning has been shown yet for a particular tab so that it only shows the warning
+        # the first time through the refresh functions. This variable is reset to False for a tab when data is loaded
+        # and the tab is selected.
+        self.showed_no_data_warning = False
 
     def subframe1(self, ncols=None):
         """ Creates the first row with the refresh button, smoothing, and folding options.
@@ -128,7 +134,6 @@ class PlotWindow(tk.Frame):
         self.ax.plot(self.data["Example Data"][0],
                      self.data["Example Data"][1],
                      label="y=sin(x)")
-
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         self.ax.set_ylim(-1, self.ymax)  # ymin is hardcoded so that self.ymin can be something else
         self.canvas.draw()
@@ -218,7 +223,7 @@ class PlotWindow(tk.Frame):
             # only want to initialize this the first time
             self.data_container.reference.set(choices[0])
         else:
-            if self.data_container.reference.get() == "No Data":
+            if self.data_container.reference.get() == "No Data" or self.data_container.reference.get() == "None":
                 self.data_container.reference.set(choices[0])
         for choice in choices:
             # TODO is there a more proper way to do this?

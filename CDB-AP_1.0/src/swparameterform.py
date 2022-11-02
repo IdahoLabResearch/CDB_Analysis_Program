@@ -83,7 +83,12 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
                 self.inputs[key].insert(tk.END, self.params[key])
             self.plot()
         except ValueError:
-            tk.messagebox.showerror("Error", "Please load data first")
+            # Check if this is the first time that this warning appears to patch the problem that the program
+            # goes through this function multiple times when the messagebox is used, causing the error message
+            # to pop up multiple times each click
+            if not self.showed_no_data_warning:
+                self.showed_no_data_warning = True
+                tk.messagebox.showerror("Error", "Please load data first")
 
     def plot(self, *args):
         """ event occurs when Return is pressed, but only is passed in some of the times this function will be called"""
@@ -139,3 +144,4 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         self.ax.set_xlabel("Energy (keV)", fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_ylabel("Counts", fontsize=p.LABEL_FONT_SIZE)
         self.canvas.draw()
+        self.showed_no_data_warning = False  # Reset the error warning for no data once data has been loaded
