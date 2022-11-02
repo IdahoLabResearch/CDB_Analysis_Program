@@ -21,27 +21,27 @@ Authors
 Joseph Watkins, 2020-2021
 Idaho National Laboratory
 
-Requirements
-============
-
-* Python 3.8
-* Tkinter
-* tkmacosx
-* Matplotlib
-* Numpy
-* Pandas
+George Evans, 2021-2022
+Idaho National Laboratory
 
 Installation
 ============
-Include installation information for matplotlib, pandas, and numpy here
-I will find out as we go if we for sure need numpy or not.
+1.	Select the button “Code” near the top of this directory.
+2.	Select “Download ZIP” from the dropdown menu that appears.
+3.	Extract the downloaded file to a folder of your choice.
+4.	Open the command line, then move to the directory “HyPAT” within the downloaded folder.
+5.	Run the following code to open the application: python main.py
 
-Usage
-=====
+ 
+* Note:
+   * Your system may require the following code instead: python3 main.py
+   * These instructions assume you already have Python and the required Python packages installed.
 
-To start the application, run::
+Python Interpreter: 3.8, 3.9, or 3.10
 
-  python3 PAS_CDB_GUI/pas_cdb_gui.py
+Python Packages: tkinter, tkmacosx, Matplotlib, NumPy, Pandas, mplcursors
+
+Compatible: macOS and Windows 10
 
 General Notes
 =============
