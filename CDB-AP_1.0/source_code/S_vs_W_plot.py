@@ -11,7 +11,7 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
 
         self.rowconfigure(1, weight=1)  # let the plot resize
 
-        self.label = tk.Label(self, text="Welcome to the S vs W plotting section")
+        self.label = tk.Label(self, text="Welcome to the S vs. W plotting section")
         self.label.grid(row=0, column=0, padx=10, pady=10)
         self.name = name
         # load the data

@@ -213,7 +213,7 @@ class DoTheMathStoreTheData:
                 self.filename_labels = new_key
 
             elif isinstance(new_key, str):
-                # updates a single valuef
+                # updates a single value
                 self.filename_labels[key] = new_key
             else:
                 tk.messagebox.showerror('Error', "Not a dictionary or a string: "+str(type(new_key)))
@@ -287,8 +287,8 @@ class DoTheMathStoreTheData:
                             df['x'][SW_idx["SmaxL"]:SW_idx["Smax"] + 1])) * self.C_norms[col]
             N_total = np.trapz(df[col], df['x']) * self.C_norms[col]
             print("N_total =", N_total)
-            print("N_S/N_total", N_S/N_total, "vs calculated S", S)
-            print("N_W/N_total", N_W/N_total, "vs calculated W", W)
+            print("N_S/N_total", N_S/N_total, "vs. calculated S", S)
+            print("N_W/N_total", N_W/N_total, "vs. calculated W", W)
 
             dS = (N_S / N_total) * np.sqrt(1 / N_S + 1 / N_total)
             dW = (N_W / N_total) * np.sqrt(1 / N_W + 1 / N_total)
@@ -757,7 +757,7 @@ class DoTheMathStoreTheData:
         expcnt = data2i.flatten()[mask]
         # pd.DataFrame(expcnt).to_excel("expcnt.xlsx")  # . todo delete this
 
-        # add up counts for overlapped dE, check counts vs reduced dE
+        # add up counts for overlapped dE, check counts vs. reduced dE
         combo = np.array([dE, expcnt]).transpose()
         # pd.DataFrame(combo).to_excel("combo pre.xlsx")  # . todo delete this
 

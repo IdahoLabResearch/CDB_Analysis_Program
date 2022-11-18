@@ -68,9 +68,6 @@ class FileUploadForm(tk.Frame):
         select_all = ttk.Button(self, text="Select All", command=self.select_all)
         delete_button = ttk.Button(self, text="Delete Selected Files", command=self.delete_files)
 
-        # using a button to update the filenames because the focus out method was too confusing
-        # to figure out in a reasonable amount of time
-        rename_button = ttk.Button(self, text="Update Filenames", command=self.update_names)
         # reset the labels in case the user makes a mistake
         reset_labels = ttk.Button(self, text="Reset Filenames", command=self.reset_names)
         save_button = ttk.Button(self, text="Save Raw Data", command=self.save_file_data)
@@ -86,14 +83,13 @@ class FileUploadForm(tk.Frame):
         self.file_row = 1
         self.file_col = 1
         self.file_rowspan = 7  # to avoid resizing the buttons as more files are added
-        self.file_columnspan = 4
+        self.file_columnspan = 3
         self.display_files()
 
         # bottom row
         select_all.grid(row=9, column=1, sticky="nsew")
-        rename_button.grid(row=9, column=2, sticky="nsew")
-        reset_labels.grid(row=9, column=3, sticky="nsew")
-        delete_button.grid(row=9, column=4, sticky="nsew")
+        reset_labels.grid(row=9, column=2, sticky="nsew")
+        delete_button.grid(row=9, column=3, sticky="nsew")
 
     def process_TechnoAP(self):
         """ load a TechnoAP CDB file, convert it to be formatted like a mpa file, then process it"""
@@ -729,7 +725,7 @@ class FileUploadForm(tk.Frame):
             data = self.data_container.get("raw data")
             df = self.data_container.from_dict_to_df(data)
             # temp solution - change headers to the short labels
-            # fixme it appears that I have lost a few rows vs before I added these few lines
+            # fixme it appears that I have lost a few rows vs. before I added these few lines
             # from here to the rename call.
             current_cols = df.columns
             d = {}

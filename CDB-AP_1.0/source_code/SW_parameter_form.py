@@ -42,7 +42,7 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         self.inputs["ShiftButton"].grid(row=0, column=4, sticky="nsew")  # slide this button over
 
         # new buttons
-        logscale_checkbox = ttk.Checkbutton(parent, text="Check to turn off log scale",
+        logscale_checkbox = ttk.Checkbutton(parent, text="Linear Scale",
                                             variable=self.data_container.inputs["LogscaleState"])
         logscale_checkbox.grid(row=0, column=5, sticky='nsew')
 

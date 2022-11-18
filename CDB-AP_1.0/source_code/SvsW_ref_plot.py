@@ -8,7 +8,7 @@ class SvsWRefPlot(s.SvsWPlot, tk.Frame):
         super().__init__(name, data_container, *args, **kwargs)
 
         self.label.destroy()
-        self.label = tk.Label(self, text="Welcome to the S vs W plotting section with references")
+        self.label = tk.Label(self, text="Welcome to the S vs. W plotting section with references")
         self.label.grid(row=0, column=0, padx=10, pady=10)
         self.name = name  # todo Check if this variable is needed
         self.data_container = data_container
