@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from . import PlotModule as p
+from . import plot_module as p
 import mplcursors
 
 
@@ -47,10 +47,10 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
             # to pop up multiple times each click
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
-                tk.messagebox.showerror("Error", "Please set/check SW parameters first")
+                tk.messagebox.showerror("Error", 'Please load the "S and W Parameters" tab before loading this tab')
 
     def plot(self):
-        # we have to extract the data here because it can change any time we change the sw param tab
+        # we have to extract the data here because it can change any time we change the S and W parameters tab
         SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)  # . added sw)err
         self.ax.clear()
 

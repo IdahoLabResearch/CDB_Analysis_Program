@@ -1,10 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
-from . import PlotModule as p
+from . import plot_module as p
 
 
-class RatioCurvePlot(p.PlotWindow, tk.Frame):
+class RatioCurvesPlot(p.PlotWindow, tk.Frame):
 
     def __init__(self, name, data_container, *args, **kwargs):
         super().__init__(name, data_container, *args, **kwargs)

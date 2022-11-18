@@ -98,7 +98,7 @@ class DoTheMathStoreTheData:
 
         elif name == "sw ref":
             if sample:
-                # return self.SWRef.loc[sample, "S"], self.SWRef.loc[sample, "W"]
+                # return self.SvsWRefPlot.loc[sample, "S"], self.SvsWRefPlot.loc[sample, "W"]
                 if sample in self.SWRef.index:
                     return self.SWRef.loc[sample, "S"], self.SWRef.loc[sample, "W"]
                 else:

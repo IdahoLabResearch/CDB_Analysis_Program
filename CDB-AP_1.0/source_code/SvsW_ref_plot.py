@@ -1,8 +1,8 @@
 import tkinter as tk
-from . import svswplot as s
+from . import S_vs_W_plot as s
 
 
-class SWRef(s.SvsWPlot, tk.Frame):
+class SvsWRefPlot(s.SvsWPlot, tk.Frame):
 
     def __init__(self, name, data_container, *args, **kwargs):
         super().__init__(name, data_container, *args, **kwargs)

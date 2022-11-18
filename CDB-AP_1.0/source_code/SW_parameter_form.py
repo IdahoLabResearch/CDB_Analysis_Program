@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from . import PlotModule as p
+from . import plot_module as p
 
 
 class SWParameterForm(p.PlotWindow): #, tk.Frame):
@@ -47,7 +47,7 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         logscale_checkbox.grid(row=0, column=5, sticky='nsew')
 
     def create_sw_parameter_inputs(self):
-        subframe2 = tk.LabelFrame(self, text="S-W Parameter Definitions", background='gray93')
+        subframe2 = tk.LabelFrame(self, text="S and W parameter definitions", background='gray93')
 
         subframe2.rowconfigure(0, weight=1)  # single row frame
         for n in range(6):

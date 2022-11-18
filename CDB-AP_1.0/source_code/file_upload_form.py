@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import pandas as pd
-from .PlotModule import LoadingScreen, Marker
+from .plot_module import LoadingScreen, Marker
 from tkinter import colorchooser
 import os
 import numpy as np
@@ -62,24 +62,24 @@ class FileUploadForm(tk.Frame):
         fileinfo.grid(row=0, column=0, columnspan=5, sticky="nsew")
 
         # Create the buttons
-        process_mpa_button = ttk.Button(self, text="Process a .mpa file", command=self.process_mpa)
+        process_mpa_button = ttk.Button(self, text="Process MPA File", command=self.process_mpa)
+        process_TechnoAP_button = ttk.Button(self, text="Process TechnoAP File", command=self.process_TechnoAP)
         load_button = ttk.Button(self, text="Load Data", command=self.open_file)
-        select_all = ttk.Button(self, text="Select all", command=self.select_all)
-        delete_button = ttk.Button(self, text="Delete selected files", command=self.delete_files)
-        process_TechnoAP_button = ttk.Button(self, text="Process a TechnoAP file", command=self.process_TechnoAP)
+        select_all = ttk.Button(self, text="Select All", command=self.select_all)
+        delete_button = ttk.Button(self, text="Delete Selected Files", command=self.delete_files)
 
         # using a button to update the filenames because the focus out method was too confusing
         # to figure out in a reasonable amount of time
-        rename_button = ttk.Button(self, text="Update filenames", command=self.update_names)
+        rename_button = ttk.Button(self, text="Update Filenames", command=self.update_names)
         # reset the labels in case the user makes a mistake
-        reset_labels = ttk.Button(self, text="Reset filenames", command=self.reset_names)
-        save_button = ttk.Button(self, text="Save raw data", command=self.save_file_data)
+        reset_labels = ttk.Button(self, text="Reset Filenames", command=self.reset_names)
+        save_button = ttk.Button(self, text="Save Raw Data", command=self.save_file_data)
 
         # first column
         process_mpa_button.grid(row=1, column=0, sticky="nsew")
-        load_button.grid(row=2, column=0, sticky="nsew")
+        process_TechnoAP_button.grid(row=2, column=0, sticky="nsew")
+        load_button.grid(row=3, column=0, sticky="nsew")
         save_button.grid(row=4, column=0, sticky="nsew")
-        process_TechnoAP_button.grid(row=5, column=0, sticky="nsew")
         self.save_options(row=6, column=0, rowspan=4)  # extend onto the bottom row
 
         # second column
@@ -214,7 +214,7 @@ class FileUploadForm(tk.Frame):
             #   functions used by the mpa file processor could be used directly. As such, the following is
             #   a mashup of several functions combined in such a way as to get the same result.
 
-            # The next bit is borrowed with some changes from read_data2D() in MathModule.py
+            # The next bit is borrowed with some changes from read_data2D() in math_module.py
 
             # np.fromiter(a, dtype=float) is about 3 seconds faster than np.array(a, dtype=float)
             # however it only works for one dimensional arrays.
@@ -248,7 +248,7 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(75)
 
             from scipy.interpolate import interp2d
-            # Borrowed the next bit from reduce_data() in MathModule.py
+            # Borrowed the next bit from reduce_data() in math_module.py
 
             # create a 2d grid for plotting
             x, y = np.meshgrid(np.arange(1, len(data2D[0]) + 1),
@@ -645,9 +645,9 @@ class FileUploadForm(tk.Frame):
         self.inputs["SW"].grid(row=1, sticky='n')
 
         self.inputs["SWRefState"] = tk.IntVar()
-        self.inputs["SWRef"] = ttk.Checkbutton(save_box, text="S and W with reference",
+        self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S and W with Reference",
                                                variable=self.inputs["SWRefState"], width=width)
-        self.inputs["SWRef"].grid(row=2, sticky='n')
+        self.inputs["SvsWRefPlot"].grid(row=2, sticky='n')
 
         self.inputs["ParamState"] = tk.IntVar()
         self.inputs["Params"] = ttk.Checkbutton(save_box, text="Parameters", variable=self.inputs["ParamState"],
@@ -655,7 +655,7 @@ class FileUploadForm(tk.Frame):
         self.inputs["Params"].grid(row=3, sticky='n')
 
         # adding the save selected button
-        export_button = ttk.Button(save_box, text="Save selected data", command=self.export_data)
+        export_button = ttk.Button(save_box, text="Save Selected Data", command=self.export_data)
         export_button.grid(row=4, column=0, sticky="sew")
 
         save_box.grid(row=row, column=column, rowspan=rowspan, columnspan=colspan, sticky="nsew")
