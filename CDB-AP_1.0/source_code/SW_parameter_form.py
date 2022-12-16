@@ -47,26 +47,27 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         logscale_checkbox.grid(row=0, column=5, sticky='nsew')
 
     def create_sw_parameter_inputs(self):
-        subframe2 = tk.LabelFrame(self, text="S and W parameter definitions", background='gray93')
+        subframe2 = tk.LabelFrame(self, text="S and W parameter regions of interest (ROI) limits (keV)",
+                                  background='gray93')
 
         subframe2.rowconfigure(0, weight=1)  # single row frame
         for n in range(6):
             subframe2.columnconfigure(n, weight=1)
 
-        ttk.Label(subframe2, text="S max").grid(row=0, column=0, sticky="nse")
-        self.inputs["Smax"] = ttk.Spinbox(subframe2, from_=460, to=560, increment=0.01)
+        ttk.Label(subframe2, text="S-ROI max:").grid(row=0, column=0, sticky="nse")
+        self.inputs["Smax"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
         self.inputs["Smax"].insert(tk.END, self.params["Smax"])
         self.inputs["Smax"].bind("<Return>", self.refresh)
         self.inputs["Smax"].grid(row=0, column=1, sticky="nsew")
 
-        ttk.Label(subframe2, text="W min").grid(row=0, column=2, sticky="nse")
-        self.inputs["Wmin"] = ttk.Spinbox(subframe2, from_=460, to=560, increment=0.01)  # cast to string before using
+        ttk.Label(subframe2, text="Right W-ROI min:").grid(row=0, column=2, sticky="nse")
+        self.inputs["Wmin"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)  # cast to string before using
         self.inputs["Wmin"].insert(tk.END, self.params["Wmin"])
         self.inputs["Wmin"].bind("<Return>", self.refresh)
         self.inputs["Wmin"].grid(row=0, column=3, sticky="nsew")
 
-        ttk.Label(subframe2, text="W max").grid(row=0, column=4, sticky="nse")
-        self.inputs["Wmax"] = ttk.Spinbox(subframe2, from_=460, to=560, increment=0.01)
+        ttk.Label(subframe2, text="Right W-ROI max:").grid(row=0, column=4, sticky="nse")
+        self.inputs["Wmax"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
         self.inputs["Wmax"].insert(tk.END, self.params["Wmax"])
         self.inputs["Wmax"].bind("<Return>", self.refresh)
         self.inputs["Wmax"].grid(row=0, column=5, sticky="nsew")

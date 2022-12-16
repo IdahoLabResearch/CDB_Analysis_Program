@@ -255,11 +255,11 @@ class FileUploadForm(tk.Frame):
             x = det2cal[1] + det2cal[0] * x
 
             # this data set is too large to use practically, and we only care about the center anyway
-            # isolate the square bound by 460 < x, y < 560
-            lower_bound = 460
-            upper_bound = 560
+            # isolate the square bound by 461 < x, y < 561
+            lower_bound = 461
+            upper_bound = 561
             print("LINE 264")  # .
-            # find the interval such that 460 < x,y < 560
+            # find the interval such that 461 < x,y < 561
             lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
             rx = np.where(x[0] < upper_bound)[0][-1]  # isolate the rightmost element
             ly = np.where(y[:, 0] > lower_bound)[0][0]

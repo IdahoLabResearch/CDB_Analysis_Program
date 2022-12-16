@@ -127,7 +127,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
             new_vals = x * 3.92 / 7.28
             return ["{:.3f}".format(x) for x in new_vals]
 
-        self.ax2.set_xlabel("momentum (a.u.)")
+        self.ax2.set_xlabel("Momentum (a.u.)")
         self.ax2.set_xlim(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()))
         # set the tick locations
         new_ticks = np.linspace(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()), 5)
@@ -137,7 +137,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
 
         self.ax.set_ylim(float(self.inputs["ymin"].get()), float(self.inputs["ymax"].get()))
         self.ax.set_xlim(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()))
-        self.ax.set_xlabel("Energy", fontsize=p.LABEL_FONT_SIZE)
+        self.ax.set_xlabel("Energy (keV)", fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_ylabel("Counts", fontsize=p.LABEL_FONT_SIZE)
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': p.LEGEND_FONT_SIZE})
         self.canvas.draw()

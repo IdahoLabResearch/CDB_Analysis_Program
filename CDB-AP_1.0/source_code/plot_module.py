@@ -70,10 +70,10 @@ class PlotWindow(tk.Frame):
 
     def subframe1_buttons(self, parent):
         refresh_button = ttk.Button(master=parent, text="Refresh", command=self.refresh)
-        refresh_button.grid(row=0, column=0, sticky="nsew")
+        refresh_button.grid(row=0, column=0, sticky="nsw")
 
-        self.inputs["smoothing_label"] = ttk.Label(parent, text="Smoothing Window Size")
-        self.inputs["smoothing_label"].grid(row=0, column=1, sticky="nsew")
+        self.inputs["smoothing_label"] = ttk.Label(parent, text="Smoothing Window Size:")
+        self.inputs["smoothing_label"].grid(row=0, column=1, sticky="nse")
 
         self.inputs["Smoothing"] = ttk.Spinbox(parent, from_=1, to=1000, increment=1,
                                                textvariable=self.data_container.inputs["Smoothing"])
@@ -142,33 +142,33 @@ class PlotWindow(tk.Frame):
 
     def subframe3(self, ncols=None):
         """ gray93 fills in the gaps to match the ttk widgets """
-        parent = tk.LabelFrame(self, text=None, background='gray93')
+        parent = tk.LabelFrame(self, text="Plot y-limits (normalized counts) and x-limits (keV)", background='gray93')
         # parent.rowconfigure(0, weight=1, uniform='row')
         if ncols:
             for n in range(ncols):
                 parent.columnconfigure(n, weight=1)
 
         # section for x and y axix
-        ttk.Label(parent, text="y min").grid(row=1, column=0, sticky="nse")
+        ttk.Label(parent, text="y min:").grid(row=1, column=0, sticky="nse")
         # no w term in sticky to get the labels to cling to the spinboxes
         self.inputs["ymin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymin"].insert(tk.END, self.ymin)
         self.inputs["ymin"].bind("<Return>", self.plot)
         self.inputs["ymin"].grid(row=1, column=1, sticky="nsew")
 
-        ttk.Label(parent, text="y max").grid(row=1, column=2, sticky="nse")
+        ttk.Label(parent, text="y max:").grid(row=1, column=2, sticky="nse")
         self.inputs["ymax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymax"].insert(tk.END, self.ymax)
         self.inputs["ymax"].bind("<Return>", self.plot)
         self.inputs["ymax"].grid(row=1, column=3, sticky="nsew")
 
-        ttk.Label(parent, text="x min").grid(row=1, column=4, sticky="nse")
+        ttk.Label(parent, text="x min:").grid(row=1, column=4, sticky="nse")
         self.inputs["xmin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmin"].insert(tk.END, self.xmin)
         self.inputs["xmin"].bind("<Return>", self.plot)
         self.inputs["xmin"].grid(row=1, column=5, sticky="nsew")
 
-        ttk.Label(parent, text="x max").grid(row=1, column=6, sticky="nse")
+        ttk.Label(parent, text="x max:").grid(row=1, column=6, sticky="nse")
         self.inputs["xmax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmax"].insert(tk.END, self.xmax)
         self.inputs["xmax"].bind("<Return>", self.plot)
