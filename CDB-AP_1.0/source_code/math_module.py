@@ -706,8 +706,8 @@ class DoTheMathStoreTheData:
 
         # this data set is too large to use practically, and we only care about the center anyway
         # isolate the square bound by 460 < x, y < 560
-        lower_bound = 460
-        upper_bound = 560
+        lower_bound = 461
+        upper_bound = 561
 
         # find the interval such that 460 < x,y < 560
         lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
