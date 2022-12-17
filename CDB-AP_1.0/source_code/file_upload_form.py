@@ -737,11 +737,10 @@ class FileUploadForm(tk.Frame):
             df.to_csv(savefilename, index=False)
 
     def output_form(self):
-        """ accesses and combines the various parameters and checkboxes and organizes
-        them into one dataframe.
-         Right now this function only works when we have refreshed every tab and
-         clicked each button at least once (fold, shift, smoothing)
-         """
+        """ accesses and combines the various parameters and checkboxes and organizes them into one dataframe.
+            Right now this function only works properly when the user has visited every tab at least once and refreshed
+            since last toggle/Spinbox was changed
+        """
         # check reference file
         ref = self.data_container.get("reference")
 
@@ -751,21 +750,22 @@ class FileUploadForm(tk.Frame):
             samples = self.data_container.get("keys")
             for sample in samples:
                 # each sample will get one row that stores all its unique data
-                output = output.append(pd.DataFrame({'label': self.filename_labels[sample].get(),
+                output = output.append(pd.DataFrame({'Label': self.filename_labels[sample].get(),
                                                      # 'shift amount': self.data_container.get("shift amount", sample),
-                                                     'color': self.data_container.color[sample].get(),
-                                                     'marker': self.markerclass.markers[
+                                                     'Color': self.data_container.color[sample].get(),
+                                                     'Marker': self.markerclass.markers[
                                                          self.data_container.marker[sample].get()],
-                                                     'S': self.data_container.get("sw", sample)[0],
-                                                     'W': self.data_container.get("sw", sample)[1],
-                                                     'S Ref': self.data_container.get("sw ref", sample)[0],
-                                                     'W Ref': self.data_container.get("sw ref", sample)[1],
+                                                     'S Parameter': self.data_container.get("sw", sample)[0],
+                                                     'W Parameter': self.data_container.get("sw", sample)[1],
+                                                     'Ref. S Parameter': self.data_container.get("sw ref", sample)[0],
+                                                     'Ref. W Parameter': self.data_container.get("sw ref", sample)[1],
                                                      }, index=[sample]))
 
             # add all the shared data (values will repeat for each row)
-            output["Shift"] = self.data_container.get("is shifted")
-            output["Folding"] = self.data_container.get("is folded")
+            output["Shifted"] = self.data_container.get("is shifted")
+            output["Folded"] = self.data_container.get("is folded")
             output["Smoothing Window Size"] = self.data_container.get("smoothing amount")
+            output["Gaussian Smoothing"] = bool(self.data_container.get("gaussian smoothing"))
             ref_filepath = self.data_container.get("reference")  # we use the user label here.
             output["Reference Sample"] = self.data_container.get("label", sample=ref_filepath)
 

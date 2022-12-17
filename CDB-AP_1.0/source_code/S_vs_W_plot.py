@@ -49,6 +49,12 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
                 self.showed_no_data_warning = True
                 tk.messagebox.showerror("Error", 'Please load the "S and W Parameters" tab before loading this tab')
 
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
+
     def plot(self):
         # we have to extract the data here because it can change any time we change the S and W parameters tab
         SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)  # . added sw)err

@@ -55,10 +55,10 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
                 tk.messagebox.showerror("Error", "Please load data first")
 
         # store the parameters that were used for this instance.
-        # the only data this affects is the ratio curves so we only need to save it here
         self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
         self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
         self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     @staticmethod
     def make_format(current, other):

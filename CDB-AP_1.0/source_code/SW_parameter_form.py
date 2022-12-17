@@ -55,22 +55,22 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
             subframe2.columnconfigure(n, weight=1)
 
         ttk.Label(subframe2, text="S-ROI max:").grid(row=0, column=0, sticky="nse")
-        self.inputs["Smax"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
-        self.inputs["Smax"].insert(tk.END, self.params["Smax"])
-        self.inputs["Smax"].bind("<Return>", self.refresh)
-        self.inputs["Smax"].grid(row=0, column=1, sticky="nsew")
+        self.inputs["S-ROI Max (keV)"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
+        self.inputs["S-ROI Max (keV)"].insert(tk.END, self.params["S-ROI Max (keV)"])
+        self.inputs["S-ROI Max (keV)"].bind("<Return>", self.refresh)
+        self.inputs["S-ROI Max (keV)"].grid(row=0, column=1, sticky="nsew")
 
         ttk.Label(subframe2, text="Right W-ROI min:").grid(row=0, column=2, sticky="nse")
-        self.inputs["Wmin"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)  # cast to string before using
-        self.inputs["Wmin"].insert(tk.END, self.params["Wmin"])
-        self.inputs["Wmin"].bind("<Return>", self.refresh)
-        self.inputs["Wmin"].grid(row=0, column=3, sticky="nsew")
+        self.inputs["Right W-ROI Min (keV)"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)  # cast to string before using
+        self.inputs["Right W-ROI Min (keV)"].insert(tk.END, self.params["Right W-ROI Min (keV)"])
+        self.inputs["Right W-ROI Min (keV)"].bind("<Return>", self.refresh)
+        self.inputs["Right W-ROI Min (keV)"].grid(row=0, column=3, sticky="nsew")
 
         ttk.Label(subframe2, text="Right W-ROI max:").grid(row=0, column=4, sticky="nse")
-        self.inputs["Wmax"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
-        self.inputs["Wmax"].insert(tk.END, self.params["Wmax"])
-        self.inputs["Wmax"].bind("<Return>", self.refresh)
-        self.inputs["Wmax"].grid(row=0, column=5, sticky="nsew")
+        self.inputs["Right W-ROI Max (keV)"] = ttk.Spinbox(subframe2, from_=461, to=561, increment=0.01)
+        self.inputs["Right W-ROI Max (keV)"].insert(tk.END, self.params["Right W-ROI Max (keV)"])
+        self.inputs["Right W-ROI Max (keV)"].bind("<Return>", self.refresh)
+        self.inputs["Right W-ROI Max (keV)"].grid(row=0, column=5, sticky="nsew")
 
         # calculate the companions in the data container
         subframe2.grid(row=2, sticky="nsew")
@@ -78,7 +78,7 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
     def refresh(self, *args):
         try:
             # set new params
-            for key in ("Smax", "Wmax", "Wmin"):
+            for key in ("S-ROI Max (keV)", "Right W-ROI Max (keV)", "Right W-ROI Min (keV)"):
                 self.data_container.set(name="parameter", key=key, value=float(self.inputs[key].get()))
                 self.inputs[key].delete(0, tk.END)
                 self.inputs[key].insert(tk.END, self.params[key])
@@ -90,6 +90,12 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
                 tk.messagebox.showerror("Error", "Please load data first")
+
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     def plot(self, *args):
         """ event occurs when Return is pressed, but only is passed in some of the times this function will be called"""
@@ -129,9 +135,9 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         # draw the lines for the sw parameters here
         [self.ax.vlines(val, self.ymin, self.ymax, linewidth=p.LINE_WIDTH) for val in self.params.values()]
         # alpha controls the transparency
-        self.ax.axvspan(self.params["SmaxL"], self.params["Smax"], alpha=0.5, color='red')
-        self.ax.axvspan(self.params["WmaxL"], self.params["WminL"], alpha=0.5, color='blue')
-        self.ax.axvspan(self.params["Wmin"], self.params["Wmax"], alpha=0.5, color='blue')
+        self.ax.axvspan(self.params["S-ROI Min (keV)"], self.params["S-ROI Max (keV)"], alpha=0.5, color='red')
+        self.ax.axvspan(self.params["Left W-ROI Max (keV)"], self.params["Left W-ROI Min (keV)"], alpha=0.5, color='blue')
+        self.ax.axvspan(self.params["Right W-ROI Min (keV)"], self.params["Right W-ROI Max (keV)"], alpha=0.5, color='blue')
 
         # set the legend so it is outside the main box
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': p.LEGEND_FONT_SIZE})

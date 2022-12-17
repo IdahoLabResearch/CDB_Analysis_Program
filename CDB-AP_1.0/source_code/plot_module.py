@@ -78,7 +78,7 @@ class PlotWindow(tk.Frame):
         self.inputs["Smoothing"] = ttk.Spinbox(parent, from_=1, to=1000, increment=1,
                                                textvariable=self.data_container.inputs["Smoothing"])
         # initialized in data_container
-        self.inputs["Smoothing"].bind("<Return>", self.plot)
+        self.inputs["Smoothing"].bind("<Return>", self.refresh)
         self.inputs["Smoothing"].grid(row=0, column=2, sticky="nsew")
 
         self.inputs["GaussianSmoothing"] = ttk.Checkbutton(parent, text="Gaussian Smoothing",
@@ -153,25 +153,25 @@ class PlotWindow(tk.Frame):
         # no w term in sticky to get the labels to cling to the spinboxes
         self.inputs["ymin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymin"].insert(tk.END, self.ymin)
-        self.inputs["ymin"].bind("<Return>", self.plot)
+        self.inputs["ymin"].bind("<Return>", self.refresh)
         self.inputs["ymin"].grid(row=1, column=1, sticky="nsew")
 
         ttk.Label(parent, text="y max:").grid(row=1, column=2, sticky="nse")
         self.inputs["ymax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymax"].insert(tk.END, self.ymax)
-        self.inputs["ymax"].bind("<Return>", self.plot)
+        self.inputs["ymax"].bind("<Return>", self.refresh)
         self.inputs["ymax"].grid(row=1, column=3, sticky="nsew")
 
         ttk.Label(parent, text="x min:").grid(row=1, column=4, sticky="nse")
         self.inputs["xmin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmin"].insert(tk.END, self.xmin)
-        self.inputs["xmin"].bind("<Return>", self.plot)
+        self.inputs["xmin"].bind("<Return>", self.refresh)
         self.inputs["xmin"].grid(row=1, column=5, sticky="nsew")
 
         ttk.Label(parent, text="x max:").grid(row=1, column=6, sticky="nse")
         self.inputs["xmax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmax"].insert(tk.END, self.xmax)
-        self.inputs["xmax"].bind("<Return>", self.plot)
+        self.inputs["xmax"].bind("<Return>", self.refresh)
         self.inputs["xmax"].grid(row=1, column=7, sticky="nsew")
 
         b = ttk.Button(parent, text="Use Limits from Plot", command=self.get_axis_limits)
@@ -196,6 +196,12 @@ class PlotWindow(tk.Frame):
     def refresh(self, *args):
         # include this as a way to change the data for the plot
         self.plot()
+
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     def toggle_fold(self):
         self.fold_value_changed = True

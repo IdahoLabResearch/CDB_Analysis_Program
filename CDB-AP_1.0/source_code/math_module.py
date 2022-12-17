@@ -29,7 +29,8 @@ class DoTheMathStoreTheData:
         self.SWRef = pd.DataFrame()
         self.check_boxes = pd.DataFrame({"fold": False,
                                          "shift": False,
-                                         "smoothing_window_size": 1}, index=["CheckButtons"])
+                                         "smoothing_window_size": 1,
+                                         "gaussian_smoothing": False}, index=["CheckButtons"])
         self.shift_values = {}
         self.hidden_state = {}  # user may choose to hide data
         self.color = {}  # store the color for each data set
@@ -48,10 +49,10 @@ class DoTheMathStoreTheData:
         self.reference = tk.StringVar()  # contains the full file path
 
         # set the parameters on the right
-        self.parameters = {"Smax": 511.77, "Wmin": 513.02, "Wmax": 519.08}
+        self.parameters = {"S-ROI Max (keV)": 511.77, "Right W-ROI Min (keV)": 513.02, "Right W-ROI Max (keV)": 519.08}
         # calculate the parameters on the left
-        key = ("Smax", "Wmin", "Wmax")
-        new_key = ("SmaxL", "WminL", "WmaxL")
+        key = ("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)")
+        new_key = ("S-ROI Min (keV)", "Left W-ROI Min (keV)", "Left W-ROI Max (keV)")
         for n in range(3):
             # use the displacement from center to maintain symmetry
             self.parameters[new_key[n]] = 511 - abs(511 - self.parameters[key[n]])
@@ -138,6 +139,9 @@ class DoTheMathStoreTheData:
         elif name == "smoothing amount":
             return self.check_boxes.loc["CheckButtons", "smoothing_window_size"]
 
+        elif name == "gaussian smoothing":
+            return self.check_boxes.loc["CheckButtons", "gaussian_smoothing"]
+
         elif name == "reference":
             return self.reference.get()
 
@@ -176,8 +180,8 @@ class DoTheMathStoreTheData:
             xpeak = 511
             distance_to_peak = abs(value - xpeak)  # to set the symmetry value
             # loop through three cases
-            left_options = ("SmaxL", "WminL", "WmaxL")
-            for n, option in enumerate(("Smax", "Wmin", "Wmax")):
+            left_options = ("S-ROI Min (keV)", "Left W-ROI Min (keV)", "Left W-ROI Max (keV)")
+            for n, option in enumerate(("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)")):
                 if key == option:
                     # check size
                     if value < xpeak:
@@ -187,7 +191,7 @@ class DoTheMathStoreTheData:
                     else:
                         self.parameters[option] = round(value, 2)
                         self.parameters[left_options[n]] = round(xpeak - distance_to_peak, 2)
-                elif key not in ("Smax", "Wmin", "Wmax"):
+                elif key not in ("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)"):
                     tk.messagebox.showerror('Error', "Invalid key")
         elif name == "smoothing":
             if value is None:
@@ -244,47 +248,48 @@ class DoTheMathStoreTheData:
         print("norms", self.C_norms)  # . todo del
 
         # collect the indices for the SW bounds - they all share the same x axis
-        for key in ("WmaxL", "SmaxL", "Wmin"):
+        for key in ("Left W-ROI Max (keV)", "S-ROI Min (keV)", "Right W-ROI Min (keV)"):
             SW_idx[key] = np.where(df['x'] <= self.parameters[key])[0][-1]
-        for key in ("WminL", "Smax", "Wmax"):
+        for key in ("Left W-ROI Min (keV)", "S-ROI Max (keV)", "Right W-ROI Max (keV)"):
             SW_idx[key] = np.where(df['x'] >= self.parameters[key])[0][0]
 
         if ref:
             # calculate the ref first
-            Sref = (np.trapz(df[self.reference.get()][SW_idx["SmaxL"]:SW_idx["Smax"] + 1],
-                             df['x'][SW_idx["SmaxL"]:SW_idx["Smax"] + 1]) /
+            Sref = (np.trapz(df[self.reference.get()][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1],
+                             df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1]) /
                     np.trapz(df[self.reference.get()], df['x'])
                     )
-            Wref = ((np.trapz(df[self.reference.get()][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                              df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                     np.trapz(df[self.reference.get()][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                              df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1])) /
+            Wref = ((np.trapz(df[self.reference.get()][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                              df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                     np.trapz(df[self.reference.get()][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                              df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1])) /
                     np.trapz(df[self.reference.get()], df['x'])
                     )
 
         for col in df.columns[1:]:  # . added unc and num stuff to this for loop
             print()
             # calculate S and W for that data set
-            S = (np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"]+1],
-                          df['x'][SW_idx["SmaxL"]:SW_idx["Smax"]+1]) /
+            S = (np.trapz(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1],
+                          df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1]) /
                  np.trapz(df[col], df['x']))
 
-            W = ((np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                           df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                  np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                           df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1])) /
+            W = ((np.trapz(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                           df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                  np.trapz(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                           df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1])) /
                  np.trapz(df[col], df['x']))
 
-            # N_S = sum(df[col][SW_idx["SmaxL"]:SW_idx["Smax"] + 1]) * self.C_norms[col]
-            # N_W = (sum(df[col][SW_idx["WmaxL"]:SW_idx["WminL"]+1]) +
-            #        sum(df[col][SW_idx["Wmin"]:SW_idx["Wmax"]+1])) * self.C_norms[col]
+            # N_S = sum(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1]) * self.C_norms[col]
+            # N_W = (sum(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"]+1]) +
+            #        sum(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"]+1])) * self.C_norms[col]
             # N_total = sum(df[col]) * self.C_norms[col]
-            N_W = ((np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                             df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                    np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                             df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1]))) * self.C_norms[col]
-            N_S = (np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"] + 1],
-                            df['x'][SW_idx["SmaxL"]:SW_idx["Smax"] + 1])) * self.C_norms[col]
+            N_W = ((np.trapz(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                             df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                    np.trapz(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                             df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1]))) \
+                  * self.C_norms[col]
+            N_S = (np.trapz(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1],
+                            df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1])) * self.C_norms[col]
             N_total = np.trapz(df[col], df['x']) * self.C_norms[col]
             print("N_total =", N_total)
             print("N_S/N_total", N_S/N_total, "vs. calculated S", S)
@@ -295,11 +300,11 @@ class DoTheMathStoreTheData:
             print("ds:", dS, "& dW:", dW)
             print("np.trapz(df[col], df['x']) =", np.trapz(df[col], df['x']))
 
-            # print("S", S, np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"]+1],
-            #       df['x'][SW_idx["SmaxL"]:SW_idx["Smax"]+1]), np.trapz(df[col], df['x']),
-            #       "W", W, (np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"]+1],
-            #       df['x'][SW_idx["WmaxL"]:SW_idx["WminL"]+1]) + np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"]+1],
-            #       df['x'][SW_idx["Wmin"]:SW_idx["Wmax"]+1])), np.trapz(df[col], df['x']))  # . TODO Delete print here and above
+            # print("S", S, np.trapz(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1],
+            #       df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1]), np.trapz(df[col], df['x']),
+            #       "W", W, (np.trapz(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"]+1],
+            #       df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"]+1]) + np.trapz(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"]+1],
+            #       df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"]+1])), np.trapz(df[col], df['x']))  # . TODO Delete print here and above
 
             if ref:
                 S /= Sref
