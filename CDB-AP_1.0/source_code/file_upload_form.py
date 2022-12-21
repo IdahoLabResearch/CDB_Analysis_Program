@@ -62,18 +62,18 @@ class FileUploadForm(tk.Frame):
         fileinfo.grid(row=0, column=0, columnspan=5, sticky="nsew")
 
         # Create the buttons
-        process_mpa_button = ttk.Button(self, text="Process MPA File", command=self.process_mpa)
+        process_FComTEc_button = ttk.Button(self, text="Process FAST ComTec File", command=self.process_FComTec)
         process_TechnoAP_button = ttk.Button(self, text="Process TechnoAP File", command=self.process_TechnoAP)
-        load_button = ttk.Button(self, text="Load Data", command=self.open_file)
+        load_button = ttk.Button(self, text="Load Preprocessed Data", command=self.open_file)
         select_all = ttk.Button(self, text="Select All", command=self.select_all)
-        delete_button = ttk.Button(self, text="Delete Selected Files", command=self.delete_files)
+        delete_button = ttk.Button(self, text="Delete Selected Data Sets", command=self.delete_files)
 
         # reset the labels in case the user makes a mistake
-        reset_labels = ttk.Button(self, text="Reset Filenames", command=self.reset_names)
+        reset_labels = ttk.Button(self, text="Reset Labels", command=self.reset_names)
         save_button = ttk.Button(self, text="Save Raw Data", command=self.save_file_data)
 
         # first column
-        process_mpa_button.grid(row=1, column=0, sticky="nsew")
+        process_FComTEc_button.grid(row=1, column=0, sticky="nsew")
         process_TechnoAP_button.grid(row=2, column=0, sticky="nsew")
         load_button.grid(row=3, column=0, sticky="nsew")
         save_button.grid(row=4, column=0, sticky="nsew")
@@ -92,23 +92,30 @@ class FileUploadForm(tk.Frame):
         delete_button.grid(row=9, column=3, sticky="nsew")
 
     def process_TechnoAP(self):
-        """ load a TechnoAP CDB file, convert it to be formatted like a mpa file, then process it"""
+        """ load a TechnoAP CDB file, convert it to be formatted like an MPA file, then process it"""
         file_path = askopenfilename()
         self.update()  # to clear the dialog box
         if file_path != "":
             loader = LoadingScreen(self)
             loader.add_progress_bar()
 
+            # Find the row right before data starts
+            temp_df = pd.read_csv(file_path, names=["a", "b", "c"])
+            header_row = 0
+            for i in range(0, 30):
+                if temp_df.loc[i, "a"] == "[Data]":
+                    header_row = i + 1
+                    break
+
             # Read data from csv file into a dataframe, then update progress bar
-            TechnoAP_data = pd.read_csv(file_path, header=12)
-            print(TechnoAP_data)  # . todo delete
+            TechnoAP_data = pd.read_csv(file_path, header=header_row)
             loader.update_progress_bar(25)
 
             # Define variables
             num_channels = 8192
             mpa_list = []
 
-            # This next portion formats the TechnoAP CDB data into something like the .mpa files this program first
+            # This next portion formats the TechnoAP CDB data into something like the MPA files this program first
             #   analyzed, allowing the TechnoAP data to be processed like that data.
             # TechnoAP's data is formatted such that we are given the row (channel from CH2) and column
             #   (channel from CH1) of each CH2/CH1 channel combination that has a count, along with the count at that
@@ -184,12 +191,12 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(25)
 
             # Ask user if they want to save this data (Only include if you need to save the file with all the zeros)
-            MsgBox = 'no'  # tk.messagebox.askquestion('Save mpa-like data', 'Save the data formatted like .mpa? The ' +
+            MsgBox = 'no'  # tk.messagebox.askquestion('Save MPA-like data', 'Save the data formatted like MPA? The ' +
                            #                     'application will finish processing the data for analysis either way.')
             if MsgBox == 'yes':
                 # extract the new file name
                 # separator = '/'  # different in MacOS and Windows10
-                filename2 = os.path.split(file_path)[1].removesuffix(".csv") + " mpa-like format"
+                filename2 = os.path.split(file_path)[1].removesuffix(".csv") + " MPA-like format"
                 filepath = os.path.split(file_path)[0]
 
                 # see if the user wants to change the name
@@ -206,11 +213,11 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(50)
 
             #####
-            # Because mpa_list doesn't have the extensive header that the actual .mpa files have, few of the
-            #   functions used by the mpa file processor could be used directly. As such, the following is
+            # Because mpa_list doesn't have the extensive header that the actual MPA files have, few of the
+            #   functions used by the MPA file processor could be used directly. As such, the following is
             #   a mashup of several functions combined in such a way as to get the same result.
 
-            # The next bit is borrowed with some changes from read_data2D() in math_module.py
+            # The next bit is copied with some changes from read_data2D() in math_module.py
 
             # np.fromiter(a, dtype=float) is about 3 seconds faster than np.array(a, dtype=float)
             # however it only works for one dimensional arrays.
@@ -244,7 +251,7 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(75)
 
             from scipy.interpolate import interp2d
-            # Borrowed the next bit from reduce_data() in math_module.py
+            # Copied the next bit from reduce_data() in math_module.py
 
             # create a 2d grid for plotting
             x, y = np.meshgrid(np.arange(1, len(data2D[0]) + 1),
@@ -293,7 +300,7 @@ class FileUploadForm(tk.Frame):
             # plt.show()  # .
             print("LINE 288")  # .
 
-            # Borrowed the next bit from process_mpa()
+            # Copied the next bit from process_FComTec()
 
             # print("data2D", data2D)  # . todo delete these print statement
             # print("x2i, y2i, and data2i",data2i)
@@ -331,8 +338,8 @@ class FileUploadForm(tk.Frame):
                 self.data_container.set(name="update key", key=filename, new_key=filename2)
                 self.display_files()
 
-    def process_mpa(self):
-        """ load a .mpa file and extract the 511 cdb peak """
+    def process_FComTec(self):
+        """ load FAST ComTec's MPA file and extract the 511 CDB peak """
         try:
             file_path = askopenfilename(filetypes=[("CDB data", ".mpa")])
             self.update()  # to clear the dialog box
@@ -469,7 +476,7 @@ class FileUploadForm(tk.Frame):
             # if there is no frame to destroy then we are fine.
             pass
 
-        self.loaded_file_frame = tk.LabelFrame(self, text="Current loaded files", background='gray93')
+        self.loaded_file_frame = tk.LabelFrame(self, text="Currently loaded data sets", background='gray93')
         self.loaded_file_frame.rowconfigure(0, weight=1)
         files = self.data_container.get("keys")
 
@@ -624,7 +631,7 @@ class FileUploadForm(tk.Frame):
 
     def save_options(self, row, column, rowspan=1, colspan=1):
         # save option box
-        save_box = tk.LabelFrame(self, text="Processed data to save", background='gray93')
+        save_box = tk.LabelFrame(self, text="Analyzed data to save", background='gray93')
         save_box.rowconfigure(4, weight=1)  # need to configure this row with this weight to get it show on the bottom
         width = 20
 
