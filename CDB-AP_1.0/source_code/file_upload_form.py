@@ -377,7 +377,10 @@ class FileUploadForm(tk.Frame):
                 loader.destroy()
                 self.update()
                 if filename != '':
+                    combo[:, 1] = combo[:, 1] * C_norm  # . Added this
                     pd.DataFrame(combo).to_csv(filename, header=False, index=False)
+                    combo[:, 1] = combo[:, 1] / C_norm  # . Added this
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)  # . added this
 
                     # with this successful, now we load the data into the application
                     # this is the same sequence of commands from open_file
@@ -432,6 +435,11 @@ class FileUploadForm(tk.Frame):
                     d = self.data_container.from_df_to_dict(new_df)
                     # save to data structure
                     for key in d:
+                        print(d[key][:, 1])
+                        C_norm = np.trapz(d[key][:, 1], new_df['x'][:])  # . added c_ norm stuff
+                        d[key][:, 1] = d[key][:, 1] / C_norm
+                        self.data_container.set(name="c_norm", key=key, c_norm=C_norm)  # . added this too  
+
                         self.data_container.set(name="raw data", key=key, data=d[key])
 
                     # don't forget to display!
@@ -439,7 +447,7 @@ class FileUploadForm(tk.Frame):
 
         except ValueError:
             # todo replace with dialog box
-            tk.messagebox.showerror("Error", "Open a single compatible (txt or csv) file. This button is not for reloading.")
+            tk.messagebox.showerror("Error", "Open a single compatible (txt or csv) file. This button is not for processing data.")
 
     @ staticmethod
     def check_for_header(filename):
@@ -753,8 +761,11 @@ class FileUploadForm(tk.Frame):
             # from here to the rename call.
             current_cols = df.columns
             d = {}
+            C_norms = self.data_container.get("c_norm")  # .
             for col in current_cols[1:]:
                 d[col] = self.data_container.get('label', sample=col)
+
+                df[col] *= C_norms[col]  # .
 
             df.rename(columns=d, inplace=True)
 

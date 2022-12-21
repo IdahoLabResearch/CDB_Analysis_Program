@@ -158,7 +158,7 @@ class DoTheMathStoreTheData:
                 tk.messagebox.showerror('Error', "column name not in filename labels")
 
         elif name == "c_norm":  # . added this (although not sure if it is needed)
-            return self.c_norms
+            return self.C_norms
 
         else:
             tk.messagebox.showerror('Error', "No variable by the name {}.".format(name))
