@@ -34,8 +34,8 @@ class FileUploadForm(tk.Frame):
 
         # Declare Variables
         self.new_file = True
-        self.delete_tracker = {}
-        self.del_button = {}  # included to help select them all later
+        self.selection_tracker = {}
+        self.select_button = {}  # included to help select them all later
         self.var = tk.IntVar
         self.loaded_file_frame = ''  # Placeholder
 
@@ -62,18 +62,18 @@ class FileUploadForm(tk.Frame):
         fileinfo.grid(row=0, column=0, columnspan=5, sticky="nsew")
 
         # Create the buttons
-        process_FComTEc_button = ttk.Button(self, text="Process FAST ComTec File", command=self.process_FComTec)
+        process_FComTec_button = ttk.Button(self, text="Process FAST ComTec File", command=self.process_FComTec)
         process_TechnoAP_button = ttk.Button(self, text="Process TechnoAP File", command=self.process_TechnoAP)
         load_button = ttk.Button(self, text="Load Preprocessed Data", command=self.open_file)
         select_all = ttk.Button(self, text="Select All", command=self.select_all)
         delete_button = ttk.Button(self, text="Delete Selected Data Sets", command=self.delete_files)
 
         # reset the labels in case the user makes a mistake
-        reset_labels = ttk.Button(self, text="Reset Labels", command=self.reset_names)
+        reset_labels = ttk.Button(self, text="Reset Selected Labels", command=self.reset_names)
         save_button = ttk.Button(self, text="Save Raw Data", command=self.save_file_data)
 
         # first column
-        process_FComTEc_button.grid(row=1, column=0, sticky="nsew")
+        process_FComTec_button.grid(row=1, column=0, sticky="nsew")
         process_TechnoAP_button.grid(row=2, column=0, sticky="nsew")
         load_button.grid(row=3, column=0, sticky="nsew")
         save_button.grid(row=4, column=0, sticky="nsew")
@@ -497,9 +497,9 @@ class FileUploadForm(tk.Frame):
             files = ["Ready to load some data!"]
 
         for n, filename in enumerate(files):
-            self.delete_tracker[filename] = tk.IntVar()
-            self.del_button[filename] = ttk.Checkbutton(self.loaded_file_frame, variable=self.delete_tracker[filename])
-            self.del_button[filename].grid(row=n, column=0)
+            self.selection_tracker[filename] = tk.IntVar()
+            self.select_button[filename] = ttk.Checkbutton(self.loaded_file_frame, variable=self.selection_tracker[filename])
+            self.select_button[filename].grid(row=n, column=0)
             # to get left aligned we anchor to the west side. However, this is only noticeable if
             # all of the boxes are the same size, hence width = 35
             # the file names tend to be around 26 - 30 characters long
@@ -609,14 +609,25 @@ class FileUploadForm(tk.Frame):
         """ updates the list of short user defined labels. Can be called manually
         or by <FocusOut> on the specific label defined in display_files()"""
         # store the labels in the data container
+        ref = self.data_container.get('key', sample=str(self.data_container.reference.get()))
+
         new_names = {key: val.get() for key, val in self.filename_labels.items()}
         self.data_container.set("update key", new_key=new_names)
 
+        # fixme The below line now means that changing the reference label resets the displayed reference label for
+        #   both the "Ratio Curves" tab and the "S vs. W (Ref.)" tab. Also, resetting any label resets the displayed
+        #   label for both tabs. This is a separate issue from whatever is causing the displayed labels to
+        #   reset every time the "S vs. W (Ref.)" tab gets visited. The below line was added because, without it,
+        #   errors were appearing when changing/resetting names and navigating tabs in various ways
+        self.data_container.set("reference", key=ref)
+
+
     def reset_names(self):
-        keys = self.data_container.get("keys")
+        keys = list(self.selection_tracker.keys())  # self.data_container.get("keys")  # .
         for key in keys:
-            self.filename_labels[key].delete(0, tk.END)
-            self.filename_labels[key].insert(tk.END, key)
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":  # .
+                self.filename_labels[key].delete(0, tk.END)
+                self.filename_labels[key].insert(tk.END, key)
 
         # now replace the labels in the data container.
         self.update_names()
@@ -626,14 +637,19 @@ class FileUploadForm(tk.Frame):
         # loop through all the files that are currently loaded
         files = self.data_container.get("keys")
         for file in files:
-            self.del_button[file].state(selected)
-            self.delete_tracker[file].set(1)
+            self.select_button[file].state(selected)
+            self.selection_tracker[file].set(1)
 
     def save_options(self, row, column, rowspan=1, colspan=1):
         # save option box
         save_box = tk.LabelFrame(self, text="Analyzed data to save", background='gray93')
         save_box.rowconfigure(4, weight=1)  # need to configure this row with this weight to get it show on the bottom
-        width = 20
+        if platform.system() == 'Darwin':  # macOS
+            width = 20
+        else:
+            # account for Windows
+            width = 25
+
 
         self.inputs["RatioCurveState"] = tk.IntVar()
         self.inputs["RatioCurves"] = ttk.Checkbutton(save_box, text="Ratio Curves",
@@ -784,12 +800,12 @@ class FileUploadForm(tk.Frame):
             return output
 
     def delete_files(self):
-        keys = list(self.delete_tracker.keys())
+        keys = list(self.selection_tracker.keys())
         for key in keys:
 
-            if self.delete_tracker[key].get() and key != "Ready to load some data!":
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":
                 self.data_container.remove(key)
-                self.delete_tracker.pop(key)
+                self.selection_tracker.pop(key)
                 self.filename_labels.pop(key)
                 self.colors.pop(key)
                 self.hidden.pop(key)
