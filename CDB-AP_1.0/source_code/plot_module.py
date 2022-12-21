@@ -191,7 +191,7 @@ class PlotWindow(tk.Frame):
         # place them into the input boxes
         for n in range(4):
             self.inputs[keys[n]].delete(0, tk.END)
-            self.inputs[keys[n]].insert(tk.END, round(lims[n], 2))
+            self.inputs[keys[n]].insert(tk.END, round(lims[n], 5))
 
     def refresh(self, *args):
         # include this as a way to change the data for the plot

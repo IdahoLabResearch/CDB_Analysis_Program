@@ -229,7 +229,6 @@ class FileUploadForm(tk.Frame):
 
             # The next bit was written to compensate for TechnoAP's data files not including information for
             # energy calibration
-            print("HERE") # .
             det1cal, det2cal = np.array([None, None]), np.array([None, None])
             loader.destroy()
             # CH1's info goes to det2cal. This could be changed, but then edits elsewhere will need to be made,
@@ -245,7 +244,7 @@ class FileUploadForm(tk.Frame):
             while det1cal[1] is None:
                 det1cal[1] = tk.simpledialog.askfloat("Input", "'b' for CH2:", minvalue=-100, maxvalue=100,
                                                       initialvalue=det2cal[1])
-            print("LINE 244")  # .
+
             loader = LoadingScreen(self)
             loader.add_progress_bar()
             loader.update_progress_bar(75)
@@ -265,7 +264,7 @@ class FileUploadForm(tk.Frame):
             # isolate the square bound by 461 < x, y < 561
             lower_bound = 461
             upper_bound = 561
-            print("LINE 264")  # .
+
             # find the interval such that 461 < x,y < 561
             lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
             rx = np.where(x[0] < upper_bound)[0][-1]  # isolate the rightmost element
@@ -277,56 +276,33 @@ class FileUploadForm(tk.Frame):
             ry += 1
             x2 = x[ly:ry, lx:rx]
             y2 = y[ly:ry, lx:rx]
-            # pd.DataFrame(x2).to_excel("x2.xlsx")  # . todo delete this
-            # pd.DataFrame(y2).to_excel("y2.xlsx")  # . todo delete this
-
-            # pd.DataFrame(x).to_excel("x.xlsx")  # . todo delete this
-            # pd.DataFrame(y).to_excel("y.xlsx")  # . todo delete this
             data2D = data2D[ly:ry, lx:rx]
-            # . TODO UP NEXT, FIGUREO UT WHY THE ENERGY INTERVALS ARE 0.075 instead of 0.15. Probably look at excel sheets on VDI
-            interp_step = 0.15  # . 0.005
+            interp_step = 0.15
             x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                    np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
             f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
-            # pd.DataFrame(data2D).to_excel("data2D.xlsx")  # . todo delete this
-            # pd.DataFrame(x2i).to_excel("x2i.xlsx")  # . todo delete this
-            # pd.DataFrame(y2i).to_excel("y2i.xlsx")  # . todo delete this
             data2i = f(x2i[0], y2i[:, 0])
-            # pd.DataFrame(data2i).to_excel("data2i.xlsx")  # . todo delete this
-            # from matplotlib import pyplot as plt  # .
-            # plt.figure()
-            # plt.plot(data2D, label="data2D")  # .
-            # plt.legend()  # .
-            # plt.show()  # .
-            print("LINE 288")  # .
 
             # Copied the next bit from process_FComTec()
 
-            # print("data2D", data2D)  # . todo delete these print statement
-            # print("x2i, y2i, and data2i",data2i)
-            # print(data2i.to_string()) x2i, y2i,
-            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)  # . added C_norm
-            # print(C_norm, " =C_norm")
-            # print("combo", np.array(combo))
-            # print(combo.to_string())
-            loader.update_progress_bar(25)
+            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)
 
+            loader.update_progress_bar(25)
 
             # extract the new file name
             # split from right to left, but only make one split
             # separator = '/'  # different in MacOS and Windows10
             filename2 = os.path.split(file_path)[1].removesuffix(".csv") + "_511CDBpeak"
             filepath = os.path.split(file_path)[0]
-            print("Line 307")  # .
             # see if the user wants to change the name
             filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv")
             loader.destroy()
             self.update()
             if filename != '':
-                combo[:, 1] = combo[:, 1] * C_norm  # . Added this
+                combo[:, 1] = combo[:, 1] * C_norm
                 pd.DataFrame(combo).to_csv(filename, header=False, index=False)
-                combo[:, 1] = combo[:, 1] / C_norm  # . Added this
-                self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)   # . added this
+                combo[:, 1] = combo[:, 1] / C_norm
+                self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                 # with this successful, now we load the data into the application
                 # this is the same sequence of commands from open_file
@@ -355,7 +331,7 @@ class FileUploadForm(tk.Frame):
                 data2D, calibration = self.data_container.read_data2D(loader, file_path)
                 interp_step = 0.15
                 x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration, interp_step)
-                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)  # . added C_norm
+                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)
                 loader.update_progress_bar(25)
 
                 # extract the new file name
@@ -377,10 +353,10 @@ class FileUploadForm(tk.Frame):
                 loader.destroy()
                 self.update()
                 if filename != '':
-                    combo[:, 1] = combo[:, 1] * C_norm  # . Added this
+                    combo[:, 1] = combo[:, 1] * C_norm
                     pd.DataFrame(combo).to_csv(filename, header=False, index=False)
-                    combo[:, 1] = combo[:, 1] / C_norm  # . Added this
-                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)  # . added this
+                    combo[:, 1] = combo[:, 1] / C_norm
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                     # with this successful, now we load the data into the application
                     # this is the same sequence of commands from open_file
@@ -414,9 +390,9 @@ class FileUploadForm(tk.Frame):
                         else:
                             new_df = pd.read_csv(filename, sep='   ', engine='python', header=None)
 
-                    C_norm = np.trapz(new_df.iloc[:, 1], new_df.iloc[:, 0])  # . added c_ norm stuff
+                    C_norm = np.trapz(new_df.iloc[:, 1], new_df.iloc[:, 0])
                     new_df.iloc[:, 1] = new_df.iloc[:, 1] / C_norm
-                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)  # . added this too  # . TODO ADD STUFF TO MPA STUFF
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                     # load as pandas dataframes
                     new_df.columns = ["x", filename]
@@ -427,18 +403,17 @@ class FileUploadForm(tk.Frame):
                     # don't forget to display!
                     self.display_files()
 
-                else:  # / NOTE: I don't know what "reloading old data" means, so I'm not going to touch this section.
-                    # header present indicates reloading old data.
+                else:
+                    # header present indicates reloading old data that was saved via the "Save Raw Data" button
                     # now read it back in
                     new_df = pd.read_csv(filename)
                     # convert to dictionary
                     d = self.data_container.from_df_to_dict(new_df)
                     # save to data structure
                     for key in d:
-                        print(d[key][:, 1])
-                        C_norm = np.trapz(d[key][:, 1], new_df['x'][:])  # . added c_ norm stuff
+                        C_norm = np.trapz(d[key][:, 1], new_df['x'][:])
                         d[key][:, 1] = d[key][:, 1] / C_norm
-                        self.data_container.set(name="c_norm", key=key, c_norm=C_norm)  # . added this too  
+                        self.data_container.set(name="c_norm", key=key, c_norm=C_norm)
 
                         self.data_container.set(name="raw data", key=key, data=d[key])
 
@@ -632,9 +607,9 @@ class FileUploadForm(tk.Frame):
 
 
     def reset_names(self):
-        keys = list(self.selection_tracker.keys())  # self.data_container.get("keys")  # .
+        keys = list(self.selection_tracker.keys())
         for key in keys:
-            if self.selection_tracker[key].get() and key != "Ready to load some data!":  # .
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":
                 self.filename_labels[key].delete(0, tk.END)
                 self.filename_labels[key].insert(tk.END, key)
 
@@ -761,11 +736,11 @@ class FileUploadForm(tk.Frame):
             # from here to the rename call.
             current_cols = df.columns
             d = {}
-            C_norms = self.data_container.get("c_norm")  # .
+            C_norms = self.data_container.get("c_norm")
             for col in current_cols[1:]:
                 d[col] = self.data_container.get('label', sample=col)
 
-                df[col] *= C_norms[col]  # .
+                df[col] *= C_norms[col]
 
             df.rename(columns=d, inplace=True)
 

@@ -57,7 +57,7 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
 
     def plot(self):
         # we have to extract the data here because it can change any time we change the S and W parameters tab
-        SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)  # . added sw)err
+        SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)
         self.ax.clear()
 
         if not self.data_container.inputs["FlippingState"].get():
@@ -67,24 +67,12 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
             xlabel = "S"
             ylabel = "W"
 
-        # s = [SW[key][xlabel] for key in SW]  # . todo delete commented out code
-        # w = [SW[key][ylabel] for key in SW]
-        # hover_labels = ["S = " + str(SW[key][xlabel]) + " +/- " + str(SW_err[key]["dS"]) +
-        #                 "\nW = " + str(SW[key][ylabel]) + " +/- " + str(SW_err[key]["dW"]) for key in SW]
-        # print(hover_labels, "hv")
-        # left click or hover to view, right click to hide.
-        # cursor = mplcursors.cursor(self.ax.plot(s, w, ','), hover=True, multiple=True)  # . added multiple = true
-        # cursor.connect("add", lambda sel: sel.annotation.set_text(hover_labels[sel.index()]))
-
         for key in SW:
             if self.data_container.hidden_state[key].get() == 'Visible':
-                # self.ax.plot(SW[key][xlabel], SW[key][ylabel], self.data_container.marker[key].get(),
-                #              label=self.data_container.get('label', key), # . todo delete commented out code
-                #              color=self.data_container.color[key].get())
                 self.ax.errorbar(SW[key][xlabel], SW[key][ylabel], fmt=self.data_container.marker[key].get(),
                              yerr=SW_err[key]["dS"], xerr=SW_err[key]["dW"], label=self.data_container.get('label', key),
-                             color=self.data_container.color[key].get())  # . added this error bar stuff
-        mplcursors.cursor(self.ax, hover=True, multiple=True)  # . added here commented out above
+                             color=self.data_container.color[key].get())
+        mplcursors.cursor(self.ax, hover=True, multiple=True)
 
         self.ax.set_ylabel(ylabel, fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_xlabel(xlabel, fontsize=p.LABEL_FONT_SIZE)
