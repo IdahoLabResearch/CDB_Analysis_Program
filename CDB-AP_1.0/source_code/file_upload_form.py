@@ -284,7 +284,7 @@ class FileUploadForm(tk.Frame):
             # pd.DataFrame(y).to_excel("y.xlsx")  # . todo delete this
             data2D = data2D[ly:ry, lx:rx]
             # . TODO UP NEXT, FIGUREO UT WHY THE ENERGY INTERVALS ARE 0.075 instead of 0.15. Probably look at excel sheets on VDI
-            interp_step = 0.15# . 0.005
+            interp_step = 0.15  # . 0.005
             x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                    np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
             f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
@@ -305,7 +305,7 @@ class FileUploadForm(tk.Frame):
             # print("data2D", data2D)  # . todo delete these print statement
             # print("x2i, y2i, and data2i",data2i)
             # print(data2i.to_string()) x2i, y2i,
-            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
+            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)  # . added C_norm
             # print(C_norm, " =C_norm")
             # print("combo", np.array(combo))
             # print(combo.to_string())
@@ -353,8 +353,9 @@ class FileUploadForm(tk.Frame):
 
                 # pass the loading bar into the first method because this is the longest process
                 data2D, calibration = self.data_container.read_data2D(loader, file_path)
-                x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration)
-                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
+                interp_step = 0.15
+                x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration, interp_step)
+                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)  # . added C_norm
                 loader.update_progress_bar(25)
 
                 # extract the new file name

@@ -695,7 +695,7 @@ class DoTheMathStoreTheData:
         return data2D, cal
 
     @staticmethod
-    def reduce_data(data2D, cal):
+    def reduce_data(data2D, cal, interp_step):
         # default to read the calibration saved in mpa
         # this produces the coefficients for a 1st order polynomial  (linear)
         det1cal = np.polyfit(cal[0][::2], cal[0][1::2], 1)
@@ -727,7 +727,6 @@ class DoTheMathStoreTheData:
         y2 = y[ly:ry, lx:rx]
         data2D = data2D[ly:ry, lx:rx]
 
-        interp_step = 0.15
         x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
         f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
@@ -736,7 +735,7 @@ class DoTheMathStoreTheData:
         return x2i, y2i, data2i
 
     @staticmethod
-    def isolate_diagonal(x2i, y2i, data2i):
+    def isolate_diagonal(x2i, y2i, data2i, interp_step):
         # the next step is to isolate that diagonal
         max_loc = np.argmax(data2i)  # flattens the array and returns the index of the max value
         r = max_loc // len(data2i)  # integer division returns the row index
@@ -749,7 +748,7 @@ class DoTheMathStoreTheData:
         # pd.DataFrame(E1E2).to_excel("E1E2 post.xlsx")  # . todo delete this
 
         # with masked array module from numpy. masked_inside is inclusive of endpoints
-        mask = np.ma.masked_inside(E1E2, Epeak - epsilon, Epeak + epsilon).mask
+        mask = np.ma.masked_inside(E1E2, Epeak - epsilon, Epeak + epsilon + interp_step).mask
 
         # next is line 246 in the MATLAB code.
         dE = (x2i - y2i) / 2
