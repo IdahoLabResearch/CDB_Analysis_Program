@@ -40,14 +40,18 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
     def refresh(self, *args):
         try:
             self.data = self.data_container.get("sw param data")
-
             super().refresh()  # just a call to self.plot
         except KeyError:
-            tk.messagebox.showerror("Error", "Please set/check SW parameters first")
+            # Check if this is the first time that this warning appears to patch the problem that the program
+            # goes through this function multiple times when the messagebox is used, causing the error message
+            # to pop up multiple times each click
+            if not self.showed_no_data_warning:
+                self.showed_no_data_warning = True
+                tk.messagebox.showerror("Error", "Please set/check SW parameters first")
 
     def plot(self):
         # we have to extract the data here because it can change any time we change the sw param tab
-        SW = self.data_container.calculate_S(self.data, ref=self.ref)
+        SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)  # . added sw)err
         self.ax.clear()
 
         if not self.data_container.inputs["FlippingState"].get():
@@ -57,18 +61,28 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
             xlabel = "S"
             ylabel = "W"
 
-        s = [SW[key][xlabel] for key in SW]
-        w = [SW[key][ylabel] for key in SW]
+        # s = [SW[key][xlabel] for key in SW]  # . todo delete commented out code
+        # w = [SW[key][ylabel] for key in SW]
+        # hover_labels = ["S = " + str(SW[key][xlabel]) + " +/- " + str(SW_err[key]["dS"]) +
+        #                 "\nW = " + str(SW[key][ylabel]) + " +/- " + str(SW_err[key]["dW"]) for key in SW]
+        # print(hover_labels, "hv")
         # left click or hover to view, right click to hide.
-        mplcursors.cursor(self.ax.plot(s, w, ','), hover=True)
+        # cursor = mplcursors.cursor(self.ax.plot(s, w, ','), hover=True, multiple=True)  # . added multiple = true
+        # cursor.connect("add", lambda sel: sel.annotation.set_text(hover_labels[sel.index()]))
 
         for key in SW:
             if self.data_container.hidden_state[key].get() == 'Visible':
-                self.ax.plot(SW[key][xlabel], SW[key][ylabel], self.data_container.marker[key].get(),
-                             label=self.data_container.get('label', key),
-                             color=self.data_container.color[key].get())
+                # self.ax.plot(SW[key][xlabel], SW[key][ylabel], self.data_container.marker[key].get(),
+                #              label=self.data_container.get('label', key), # . todo delete commented out code
+                #              color=self.data_container.color[key].get())
+                self.ax.errorbar(SW[key][xlabel], SW[key][ylabel], fmt=self.data_container.marker[key].get(),
+                             yerr=SW_err[key]["dS"], xerr=SW_err[key]["dW"], label=self.data_container.get('label', key),
+                             color=self.data_container.color[key].get())  # . added this error bar stuff
+        mplcursors.cursor(self.ax, hover=True, multiple=True)  # . added here commented out above
 
         self.ax.set_ylabel(ylabel, fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_xlabel(xlabel, fontsize=p.LABEL_FONT_SIZE)
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': p.LEGEND_FONT_SIZE})
         self.canvas.draw()
+
+        self.showed_no_data_warning = False  # Reset the error warning for no data once data has been loaded

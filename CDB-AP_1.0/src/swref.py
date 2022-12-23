@@ -10,7 +10,7 @@ class SWRef(s.SvsWPlot, tk.Frame):
         self.label.destroy()
         self.label = tk.Label(self, text="Welcome to the S vs W plotting section with references")
         self.label.grid(row=0, column=0, padx=10, pady=10)
-        self.name = name
+        self.name = name  # todo Check if this variable is needed
         self.data_container = data_container
 
         self.subframe1()
@@ -27,10 +27,14 @@ class SWRef(s.SvsWPlot, tk.Frame):
             # set the reference we selected
             self.data_container.set("reference",
                                     key=self.data_container.get('key', sample=self.data_container.reference.get()))
-
             super().refresh()
         except ValueError:
-            tk.messagebox.showerror("Error", "Please load data first")
+            # Check if this is the first time that this warning appears to patch the problem that the program
+            # goes through this function multiple times when the messagebox is used, causing the error message
+            # to pop up multiple times each click
+            if not self.showed_no_data_warning:
+                self.showed_no_data_warning = True
+                tk.messagebox.showerror("Error", "Please load data first")
 
     def plot(self):
         super().plot()

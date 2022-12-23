@@ -5,6 +5,7 @@ import pandas as pd
 from .PlotModule import LoadingScreen, Marker
 from tkinter import colorchooser
 import os
+import numpy as np
 import platform
 if platform.system() == 'Darwin':
     from tkmacosx import Button as MacButton
@@ -24,7 +25,7 @@ class FileUploadForm(tk.Frame):
 
         # make the buttons scale with the size of the application
         # enable the check box spot to stretch
-        self.rowconfigure(5, weight=1, uniform='row')
+        self.rowconfigure(6, weight=1, uniform='row')
 
         # allow bottom row of buttons to stretch
         # for n in range(1, 5):
@@ -65,6 +66,8 @@ class FileUploadForm(tk.Frame):
         load_button = ttk.Button(self, text="Load Data", command=self.open_file)
         select_all = ttk.Button(self, text="Select all", command=self.select_all)
         delete_button = ttk.Button(self, text="Delete selected files", command=self.delete_files)
+        process_TechnoAP_button = ttk.Button(self, text="Process a TechnoAP file", command=self.process_TechnoAP)
+
         # using a button to update the filenames because the focus out method was too confusing
         # to figure out in a reasonable amount of time
         rename_button = ttk.Button(self, text="Update filenames", command=self.update_names)
@@ -76,7 +79,8 @@ class FileUploadForm(tk.Frame):
         process_mpa_button.grid(row=1, column=0, sticky="nsew")
         load_button.grid(row=2, column=0, sticky="nsew")
         save_button.grid(row=4, column=0, sticky="nsew")
-        self.save_options(row=5, column=0, rowspan=5)  # extend onto the bottom row
+        process_TechnoAP_button.grid(row=5, column=0, sticky="nsew")
+        self.save_options(row=6, column=0, rowspan=4)  # extend onto the bottom row
 
         # second column
         self.file_row = 1
@@ -91,44 +95,235 @@ class FileUploadForm(tk.Frame):
         reset_labels.grid(row=9, column=3, sticky="nsew")
         delete_button.grid(row=9, column=4, sticky="nsew")
 
-    def process_mpa(self):
-        """ load a .mpa file and extract the 511 cdb peak """
+    def process_TechnoAP(self):
+        """ load a TechnoAP CDB file, convert it to be formatted like a mpa file, then process it"""
         file_path = askopenfilename()
         self.update()  # to clear the dialog box
-        # account for cancel button
         if file_path != "":
-            # https://blog.furas.pl/python-tkinter-how-to-create-popup-window-or-messagebox-gb.html
-            # https://www.youtube.com/watch?v=Grbx15jRjQA&ab_channel=Codemy.com
-
             loader = LoadingScreen(self)
             loader.add_progress_bar()
 
-            # pass the loading bar into the first method because this is the longest process
-            data2D, calibration = self.data_container.read_data2D(loader, file_path)
-            x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration)
-            combo = self.data_container.isolate_diagonal(x2i, y2i, data2i)
+            # Read data from csv file into a dataframe, then update progress bar
+            TechnoAP_data = pd.read_csv(file_path, header=12)
+            print(TechnoAP_data)  # . todo delete
             loader.update_progress_bar(25)
 
+            # Define variables
+            num_channels = 8192
+            mpa_list = []
+
+            # This next portion formats the TechnoAP CDB data into something like the .mpa files this program first
+            #   analyzed, allowing the TechnoAP data to be processed like that data.
+            # TechnoAP's data is formatted such that we are given the row (channel from CH2) and column
+            #   (channel from CH1) of each CH2/CH1 channel combination that has a count, along with the count at that
+            #   combination. This section of the program reformats that into a one-column data file composed of only
+            #   counts (including 0s). This column of data is formatted such that the first 8192 rows of data correspond
+            #   to CH2/CH1 combinations "CH2 channel 0" with "CH1 channels 0-8191". Then the next 8192 rows of data
+            #   corresponds to "CH2 channel 1" and "CH1 channels 0-8191". This continues until the last 8192 rows of
+            #   data corresponds to "CH2 channel 8191" and "CH1 channels 0-8191".
+            # The program accomplishes this through a series of times when 0s are added:
+            #   1) Every column (set of 8192 data cells) prior to the first column (CH1 channel) that has a count in it
+            #      needs to be filled with zeros
+            #   2) Every row in that column needs to be filled with zeros until the first row (CH2 channel) that has a
+            #      count in it is reached
+            #   3) That count needs to be added
+            #   4) The data file needs to be checked to see if it has more data in it. If not, fill the rest of the
+            #      current column (set of 8192 data cells) wth 0s then fill every remaining column with 0s until there
+            #      are 8192 columns
+            #   5) The next data row needs to be checked. If the CH1 channel # is the same as the last CH1 channel #,
+            #      then 0s need to be added until the next CH2 channel # is reached. Then repeat 3-5 until a new CH1
+            #      channel number is reached.
+            #   6) Repeat 2-6 until out of data. Note, in the program, step 2 and the "then" part of step 5 are combined
+            #      into one step by use of the variable "start0s"
+
+            # Add zeros until we reach the first channel that has a count.
+            # Note: In TechnoAP CDB Data, there is a channel 0 and channel 8191, for 8192 channels in total.
+            for i in range(TechnoAP_data.at[0, 'CH1(ch)']):  # Step thru each column until the 1st channel with a count
+                # Add zeros for every row in that column
+                for j in range(num_channels):
+                    mpa_list.append(0)
+
+            DFRow = 0  # Which row in the dataframe/data is being examined
+            start0s = 0  # Which row should we start adding 0s at for that column
+            while DFRow < len(TechnoAP_data):  # The exit condition here doesn't end up getting used
+                # Check the next row of the grid row for its channel, then, starting at the channel of the last row
+                # that had a count (or zero if the last row that had a count was in an earlier column), add enough 0s
+                # to get to that row
+                for j in range(start0s, TechnoAP_data.at[DFRow, 'CH2(ch)']):
+                    mpa_list.append(0)
+
+                mpa_list.append(TechnoAP_data.at[DFRow, 'Counts'])  # Append the latest count to the list
+                start0s = TechnoAP_data.at[DFRow, 'CH2(ch)'] + 1  # Plus one to avoid getting an extra zero
+                DFRow += 1  # Advance to the next row in the data
+
+                # If all the data has been examined...
+                if DFRow >= len(TechnoAP_data):
+                    # Finish the zeros in the column
+                    for j in range(start0s, num_channels):
+                        mpa_list.append(0)
+                    # Fill up all the remaining columns with zeros
+                    for i in range(TechnoAP_data.at[DFRow-1, 'CH1(ch)'] + 1, num_channels):
+                        for j in range(num_channels):
+                            mpa_list.append(0)
+                    break  # Exit the while loop
+
+                # If there is still more data to read...
+                # (Some variables to make the next few lines easier to understand)
+                current_ch = TechnoAP_data.at[DFRow, 'CH1(ch)']
+                last_ch = TechnoAP_data.at[DFRow - 1, 'CH1(ch)']
+                if current_ch != last_ch:  # Compare last CH1 channel to new CH1 channel
+                    # If different, finish the zeroes in the column and reset the start row to 0
+                    for j in range(start0s, num_channels):
+                        mpa_list.append(0)
+                    start0s = 0
+                    # Check for missing channels between the new CH1 channel and last CH1 channel
+                    if current_ch != last_ch + 1:
+                        # If there are CH1 channels that didn't have counts, fill the corresponding columns with 0s
+                        for i in range(last_ch + 1, current_ch):
+                            for j in range(num_channels):
+                                mpa_list.append(0)
+                    # If the last CH1 channel and the new CH1 channel are the same, continue with the new start0s
+                    # defined earlier
+
+            loader.update_progress_bar(25)
+
+            # Ask user if they want to save this data (Only include if you need to save the file with all the zeros)
+            MsgBox = 'no'  # tk.messagebox.askquestion('Save mpa-like data', 'Save the data formatted like .mpa? The ' +
+                           #                     'application will finish processing the data for analysis either way.')
+            if MsgBox == 'yes':
+                # extract the new file name
+                # separator = '/'  # different in MacOS and Windows10
+                filename2 = os.path.split(file_path)[1].removesuffix(".csv") + " mpa-like format"
+                filepath = os.path.split(file_path)[0]
+
+                # see if the user wants to change the name
+                filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv")
+                loader.destroy()
+                self.update()
+                if filename != '':
+                    pd.DataFrame(mpa_list).to_csv(filename, header=False, index=False)
+            else:
+                loader.destroy()
+
+            loader = LoadingScreen(self)
+            loader.add_progress_bar()
+            loader.update_progress_bar(50)
+
+            #####
+            # Because mpa_list doesn't have the extensive header that the actual .mpa files have, few of the
+            #   functions used by the mpa file processor could be used directly. As such, the following is
+            #   a mashup of several functions combined in such a way as to get the same result.
+
+            # The next bit is borrowed with some changes from read_data2D() in MathModule.py
+
+            # np.fromiter(a, dtype=float) is about 3 seconds faster than np.array(a, dtype=float)
+            # however it only works for one dimensional arrays.
+            data2D = np.fromiter(mpa_list, dtype=float)  # 5.43 seconds
+            loader.update_progress_bar(25)
+            # convert to 2d array
+            data2D = data2D.reshape((num_channels, num_channels)).transpose()  # reshape is done a little differently
+            data2D[0, 0] = 0  # eliminate the spike
+
+            # The next bit was written to compensate for TechnoAP's data files not including information for
+            # energy calibration
+            print("HERE") # .
+            det1cal, det2cal = np.array([None, None]), np.array([None, None])
+            loader.destroy()
+            # CH1's info goes to det2cal. This could be changed, but then edits elsewhere will need to be made,
+            #   including to some code borrowed from elsewhere, so I won't change it
+            while det2cal[0] is None:  # maxvalue was chosen arbitrarily
+                det2cal[0] = tk.simpledialog.askfloat("Input", "'a' for CH1:", minvalue=0.0, maxvalue=100)
+            while det2cal[1] is None:
+                det2cal[1] = tk.simpledialog.askfloat("Input", "'b' for CH1:", minvalue=-100, maxvalue=100,
+                                                      initialvalue=0)
+            while det1cal[0] is None:
+                det1cal[0] = tk.simpledialog.askfloat("Input", "'a' for CH2:", minvalue=0.0, maxvalue=100,
+                                                      initialvalue=det2cal[0])
+            while det1cal[1] is None:
+                det1cal[1] = tk.simpledialog.askfloat("Input", "'b' for CH2:", minvalue=-100, maxvalue=100,
+                                                      initialvalue=det2cal[1])
+            print("LINE 244")  # .
+            loader = LoadingScreen(self)
+            loader.add_progress_bar()
+            loader.update_progress_bar(75)
+
+            from scipy.interpolate import interp2d
+            # Borrowed the next bit from reduce_data() in MathModule.py
+
+            # create a 2d grid for plotting
+            x, y = np.meshgrid(np.arange(1, len(data2D[0]) + 1),
+                               np.arange(1, len(data2D[:, 0]) + 1))  # include the endpoints
+
+            # scale x and y according to the linear fit
+            y = det1cal[1] + det1cal[0] * y
+            x = det2cal[1] + det2cal[0] * x
+
+            # this data set is too large to use practically, and we only care about the center anyway
+            # isolate the square bound by 460 < x, y < 560
+            lower_bound = 460
+            upper_bound = 560
+            print("LINE 264")  # .
+            # find the interval such that 460 < x,y < 560
+            lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
+            rx = np.where(x[0] < upper_bound)[0][-1]  # isolate the rightmost element
+            ly = np.where(y[:, 0] > lower_bound)[0][0]
+            ry = np.where(y[:, 0] < upper_bound)[0][-1]
+
+            # isolate the square of interest - note python drops the last index
+            rx += 1
+            ry += 1
+            x2 = x[ly:ry, lx:rx]
+            y2 = y[ly:ry, lx:rx]
+            # pd.DataFrame(x2).to_excel("x2.xlsx")  # . todo delete this
+            # pd.DataFrame(y2).to_excel("y2.xlsx")  # . todo delete this
+
+            # pd.DataFrame(x).to_excel("x.xlsx")  # . todo delete this
+            # pd.DataFrame(y).to_excel("y.xlsx")  # . todo delete this
+            data2D = data2D[ly:ry, lx:rx]
+            # . TODO UP NEXT, FIGUREO UT WHY THE ENERGY INTERVALS ARE 0.075 instead of 0.15. Probably look at excel sheets on VDI
+            interp_step = 0.15# . 0.005
+            x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
+                                   np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
+            f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
+            # pd.DataFrame(data2D).to_excel("data2D.xlsx")  # . todo delete this
+            # pd.DataFrame(x2i).to_excel("x2i.xlsx")  # . todo delete this
+            # pd.DataFrame(y2i).to_excel("y2i.xlsx")  # . todo delete this
+            data2i = f(x2i[0], y2i[:, 0])
+            # pd.DataFrame(data2i).to_excel("data2i.xlsx")  # . todo delete this
+            # from matplotlib import pyplot as plt  # .
+            # plt.figure()
+            # plt.plot(data2D, label="data2D")  # .
+            # plt.legend()  # .
+            # plt.show()  # .
+            print("LINE 288")  # .
+
+            # Borrowed the next bit from process_mpa()
+
+            # print("data2D", data2D)  # . todo delete these print statement
+            # print("x2i, y2i, and data2i",data2i)
+            # print(data2i.to_string()) x2i, y2i,
+            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
+            # print(C_norm, " =C_norm")
+            # print("combo", np.array(combo))
+            # print(combo.to_string())
+            loader.update_progress_bar(25)
+
+
             # extract the new file name
-            # example of importing name 190128 - 10K0V+10K0F, 19J500.mpa
             # split from right to left, but only make one split
             # separator = '/'  # different in MacOS and Windows10
-            # filename2_old = file_path.rsplit(separator, 1)[-1].rsplit(".", 1)[0] + "_511CDBpeak"
-            # filepath_old = file_path.rsplit(separator, 1)[0]
-            filename2 = os.path.split(file_path)[1].removesuffix(".mpa") + "_511CDBpeak"
+            filename2 = os.path.split(file_path)[1].removesuffix(".csv") + "_511CDBpeak"
             filepath = os.path.split(file_path)[0]
-            # print("FILE_PATH", file_path)
-            # print("FILENAME2:", filename2)
-            # print("FILEPATH:", filepath)
-            # print(filename2 == filename2_old)
-            # print(filepath == filepath_old)
-
+            print("Line 307")  # .
             # see if the user wants to change the name
             filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv")
             loader.destroy()
             self.update()
             if filename != '':
+                combo[:, 1] = combo[:, 1] * C_norm  # . Added this
                 pd.DataFrame(combo).to_csv(filename, header=False, index=False)
+                combo[:, 1] = combo[:, 1] / C_norm  # . Added this
+                self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)   # . added this
 
                 # with this successful, now we load the data into the application
                 # this is the same sequence of commands from open_file
@@ -139,6 +334,60 @@ class FileUploadForm(tk.Frame):
                 # save the short file name in filename_labels in the data_container
                 self.data_container.set(name="update key", key=filename, new_key=filename2)
                 self.display_files()
+
+    def process_mpa(self):
+        """ load a .mpa file and extract the 511 cdb peak """
+        try:
+            file_path = askopenfilename(filetypes=[("CDB data", ".mpa")])
+            self.update()  # to clear the dialog box
+            # account for cancel button
+            if file_path != "":
+                # https://blog.furas.pl/python-tkinter-how-to-create-popup-window-or-messagebox-gb.html
+                # https://www.youtube.com/watch?v=Grbx15jRjQA&ab_channel=Codemy.com
+
+                loader = LoadingScreen(self)
+                loader.add_progress_bar()
+
+                # pass the loading bar into the first method because this is the longest process
+                data2D, calibration = self.data_container.read_data2D(loader, file_path)
+                x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration)
+                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
+                loader.update_progress_bar(25)
+
+                # extract the new file name
+                # example of importing name 190128 - 10K0V+10K0F, 19J500.mpa
+                # split from right to left, but only make one split
+                # separator = '/'  # different in MacOS and Windows10
+                # filename2_old = file_path.rsplit(separator, 1)[-1].rsplit(".", 1)[0] + "_511CDBpeak"
+                # filepath_old = file_path.rsplit(separator, 1)[0]
+                filename2 = os.path.split(file_path)[1].removesuffix(".mpa") + "_511CDBpeak"
+                filepath = os.path.split(file_path)[0]
+                # print("FILE_PATH", file_path)
+                # print("FILENAME2:", filename2)
+                # print("FILEPATH:", filepath)
+                # print(filename2 == filename2_old)
+                # print(filepath == filepath_old)
+
+                # see if the user wants to change the name
+                filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv")
+                loader.destroy()
+                self.update()
+                if filename != '':
+                    pd.DataFrame(combo).to_csv(filename, header=False, index=False)
+
+                    # with this successful, now we load the data into the application
+                    # this is the same sequence of commands from open_file
+                    new_df = pd.DataFrame(combo, columns=['x', filename])
+                    dict_data = self.data_container.from_df_to_dict(new_df)
+                    # store the data using the full file path
+                    self.data_container.set(name="raw data", key=filename, data=dict_data[filename])
+                    # save the short file name in filename_labels in the data_container
+                    self.data_container.set(name="update key", key=filename, new_key=filename2)
+                    self.display_files()
+        except MemoryError:  # todo add try/except clauses like these in more places
+            tk.messagebox.showerror("Error", "MemoryError. Try to free up some RAM")
+        except Exception as e:
+            tk.messagebox.showerror("Error", "Unknown error. The following exception was raised:\n" + str(e))
 
     def open_file(self):
         """ prompt the user to select a single file with data in it. """
@@ -158,6 +407,10 @@ class FileUploadForm(tk.Frame):
                         else:
                             new_df = pd.read_csv(filename, sep='   ', engine='python', header=None)
 
+                    C_norm = np.trapz(new_df.iloc[:, 1], new_df.iloc[:, 0])  # . added c_ norm stuff
+                    new_df.iloc[:, 1] = new_df.iloc[:, 1] / C_norm
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)  # . added this too  # . TODO ADD STUFF TO MPA STUFF
+
                     # load as pandas dataframes
                     new_df.columns = ["x", filename]
                     # combine and save as a dictionary
@@ -167,7 +420,7 @@ class FileUploadForm(tk.Frame):
                     # don't forget to display!
                     self.display_files()
 
-                else:
+                else:  # / NOTE: I don't know what "reloading old data" means, so I'm not going to touch this section.
                     # header present indicates reloading old data.
                     # now read it back in
                     new_df = pd.read_csv(filename)
@@ -182,7 +435,7 @@ class FileUploadForm(tk.Frame):
 
         except ValueError:
             # todo replace with dialog box
-            tk.messagebox.showerror("Error", "Open a single txt file. This button is not for reloading.")
+            tk.messagebox.showerror("Error", "Open a single compatible (txt or csv) file. This button is not for reloading.")
 
     @ staticmethod
     def check_for_header(filename):
@@ -255,11 +508,9 @@ class FileUploadForm(tk.Frame):
 
             # add a color option
             if filename == "Ready to load some data!":
-                # print(filename)
                 color = 'white'
                 self.data_container.color[filename] = tk.StringVar(value="Choose Color")
             elif filename not in self.data_container.color.keys():
-                # print(filename, "pos2")
                 # assign a color if one is not assigned
                 color = self.cycle_base_colors()  # only call once per button, as the color changes per call
                 self.data_container.color[filename] = tk.StringVar(value=color)
@@ -531,10 +782,9 @@ class FileUploadForm(tk.Frame):
 
     def delete_files(self):
         keys = list(self.delete_tracker.keys())
-
         for key in keys:
 
-            if self.delete_tracker[key].get():
+            if self.delete_tracker[key].get() and key != "Ready to load some data!":
                 self.data_container.remove(key)
                 self.delete_tracker.pop(key)
                 self.filename_labels.pop(key)
