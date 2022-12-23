@@ -691,6 +691,10 @@ class FileUploadForm(tk.Frame):
             self.update()
             if filename != '':
                 data = self.data_container.get("SW")
+
+                data['dS'] = self.data_container.get("SW Err").loc[:, "dS"]
+                data['dW'] = self.data_container.get("SW Err").loc[:, "dW"]
+
                 # update the keys to reflect the user made changes
                 data['sample'] = [val.get() for val in self.filename_labels.values()]
                 data.set_index('sample', inplace=True)
@@ -705,6 +709,10 @@ class FileUploadForm(tk.Frame):
             self.update()
             if filename != '':
                 data = self.data_container.get("SW Ref")
+
+                data['dS'] = self.data_container.get("SW Err").loc[:, "dS"]
+                data['dW'] = self.data_container.get("SW Err").loc[:, "dW"]
+
                 # update the keys to reflect the user made changes
                 data['sample'] = [val.get() for val in self.filename_labels.values()]
                 data.set_index('sample', inplace=True)
@@ -769,8 +777,9 @@ class FileUploadForm(tk.Frame):
                                                      'W Parameter': self.data_container.get("sw", sample)[1],
                                                      'Ref. S Parameter': self.data_container.get("sw ref", sample)[0],
                                                      'Ref. W Parameter': self.data_container.get("sw ref", sample)[1],
+                                                     'Unc. S Parameter': self.data_container.get("sw err", sample)[0],
+                                                     'Unc. W Parameter': self.data_container.get("sw err", sample)[1],
                                                      }, index=[sample])])
-                print("output", output.to_string())  # . todo delete
 
             # add all the shared data (values will repeat for each row)
             output["Shifted"] = self.data_container.get("is shifted")

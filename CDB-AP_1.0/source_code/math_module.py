@@ -107,6 +107,15 @@ class DoTheMathStoreTheData:
             else:
                 return self.SWRef
 
+        elif name == "sw err":
+            if sample:
+                if sample in self.SW_err.index:
+                    return self.SW_err.loc[sample, "dS"], self.SW_err.loc[sample, "dW"]
+                else:
+                    return 0, 0
+            else:
+                return self.SW_err
+
         elif name == "check box values":
             return self.check_boxes
 
