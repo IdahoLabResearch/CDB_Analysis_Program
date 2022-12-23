@@ -760,7 +760,7 @@ class FileUploadForm(tk.Frame):
             samples = self.data_container.get("keys")
             for sample in samples:
                 # each sample will get one row that stores all its unique data
-                output = output.append(pd.DataFrame({'Label': self.filename_labels[sample].get(),
+                output = pd.concat([output, pd.DataFrame({'Label': self.filename_labels[sample].get(),
                                                      # 'shift amount': self.data_container.get("shift amount", sample),
                                                      'Color': self.data_container.color[sample].get(),
                                                      'Marker': self.markerclass.markers[
@@ -769,7 +769,8 @@ class FileUploadForm(tk.Frame):
                                                      'W Parameter': self.data_container.get("sw", sample)[1],
                                                      'Ref. S Parameter': self.data_container.get("sw ref", sample)[0],
                                                      'Ref. W Parameter': self.data_container.get("sw ref", sample)[1],
-                                                     }, index=[sample]))
+                                                     }, index=[sample])])
+                print("output", output.to_string())  # . todo delete
 
             # add all the shared data (values will repeat for each row)
             output["Shifted"] = self.data_container.get("is shifted")

@@ -314,10 +314,16 @@ class DoTheMathStoreTheData:
             else:
                 # safe to add to the data frame
                 if not ref:
-                    self.SW = self.SW.append(pd.DataFrame({"S": S, "W": W}, index=[col]))
+                    self.SW = pd.concat([self.SW, pd.DataFrame({"S": S, "W": W}, index=[col])])
                 else:
-                    self.SWRef = self.SWRef.append(pd.DataFrame({"S": S, "W": W}, index=[col]))
-                self.SW_err = self.SW_err.append(pd.DataFrame({"dS": dS, "dW": dW}, index=[col]))
+                    self.SWRef = pd.concat([self.SWRef, pd.DataFrame({"S": S, "W": W}, index=[col])])
+
+                rows2 = [val for val in self.SW_err.index]
+                if col in rows2:
+                    self.SW_err.loc[col, "dS"] = dS
+                    self.SW_err.loc[col, "dW"] = dW
+                else:
+                    self.SW_err = pd.concat([self.SW_err, pd.DataFrame({"dS": dS, "dW": dW}, index=[col])])
         return SW, SW_err
 
     def calc_ratio_curves(self, ref_key, window_size=1, folding=True, shift=True, drop_ref=False, gauss=False):
