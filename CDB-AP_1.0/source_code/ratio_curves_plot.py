@@ -51,7 +51,6 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
             # to pop up multiple times each click
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
-                print("VALUE ERROR")  # / todo deleted
                 tk.messagebox.showerror("Error", "Please load data first")
 
         # store the parameters that were used for this instance.

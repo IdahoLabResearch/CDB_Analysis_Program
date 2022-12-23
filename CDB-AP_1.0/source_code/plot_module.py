@@ -100,7 +100,7 @@ class PlotWindow(tk.Frame):
         plotFrame = tk.Frame(self)
 
         fig = Figure()  # figsize=(5, 6))
-        ax = fig.add_axes([.1, .1, .8, .8])
+        ax = fig.add_axes([.12, .12, .78, .78])
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])  # give legend room on the right
         ax.tick_params(direction='in', labelsize=TICK_NUMBER_SIZE)
