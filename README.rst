@@ -45,7 +45,7 @@ Compatible: macOS and Windows 10
 
 General Notes
 =============
-This application was designed to accept .mpa files that were produced using a Fast ComTech   multi parameter analyzer. This native data file is a large two-dimensional matrix of values, from which the coincidence counts can be extracted (where detector 1 + detector 2 = 1022 keV). The application also accepts reduced data where the diagonal coincidence counts have been extracted (by another program). Data imported by both means can be analyzed simultaneously and saved as an aggregate file. 
+This application was designed to accept .mpa files that were produced using a Fast ComTech multi parameter analyzer and the .csv files that were produced using TechnoAP hardware and software. The application also accepts reduced data where the diagonal coincidence counts have been extracted (by another program). Data imported by both means can be analyzed simultaneously and saved as an aggregate file. 
 
 Written using python 3.8. Running on macOS will require a third party download of python.
 The Apple distributed version of Python contains bugs that may prevent it from working. Issues have also been had with getting the Anaconda version to work with macOS.
