@@ -20,16 +20,17 @@ class DoTheMathStoreTheData:
         """
 
         self.data = {}  # Store the raw data
-        self.C_norms = {}  # Store the normalizing constants  # . added this
+        self.C_norms = {}  # Store the normalizing constants
         self.filename_labels = {}  # placeholder for the short labels for each data set
         self.ratio_curves = ''  # current form of the ratio curves will be stored here as a pandas dataframe
         self.sw_param_data = pd.DataFrame()
         self.SW = pd.DataFrame()
-        self.SW_err = pd.DataFrame()  # . added this
+        self.SW_err = pd.DataFrame()
         self.SWRef = pd.DataFrame()
         self.check_boxes = pd.DataFrame({"fold": False,
                                          "shift": False,
-                                         "smoothing_window_size": 1}, index=["CheckButtons"])
+                                         "smoothing_window_size": 1,
+                                         "gaussian_smoothing": False}, index=["CheckButtons"])
         self.shift_values = {}
         self.hidden_state = {}  # user may choose to hide data
         self.color = {}  # store the color for each data set
@@ -48,10 +49,10 @@ class DoTheMathStoreTheData:
         self.reference = tk.StringVar()  # contains the full file path
 
         # set the parameters on the right
-        self.parameters = {"Smax": 511.77, "Wmin": 513.02, "Wmax": 519.08}
+        self.parameters = {"S-ROI Max (keV)": 511.77, "Right W-ROI Min (keV)": 513.02, "Right W-ROI Max (keV)": 519.08}
         # calculate the parameters on the left
-        key = ("Smax", "Wmin", "Wmax")
-        new_key = ("SmaxL", "WminL", "WmaxL")
+        key = ("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)")
+        new_key = ("S-ROI Min (keV)", "Left W-ROI Min (keV)", "Left W-ROI Max (keV)")
         for n in range(3):
             # use the displacement from center to maintain symmetry
             self.parameters[new_key[n]] = 511 - abs(511 - self.parameters[key[n]])
@@ -98,13 +99,22 @@ class DoTheMathStoreTheData:
 
         elif name == "sw ref":
             if sample:
-                # return self.SWRef.loc[sample, "S"], self.SWRef.loc[sample, "W"]
+                # return self.SvsWRefPlot.loc[sample, "S"], self.SvsWRefPlot.loc[sample, "W"]
                 if sample in self.SWRef.index:
                     return self.SWRef.loc[sample, "S"], self.SWRef.loc[sample, "W"]
                 else:
                     return 0, 0
             else:
                 return self.SWRef
+
+        elif name == "sw err":
+            if sample:
+                if sample in self.SW_err.index:
+                    return self.SW_err.loc[sample, "dS"], self.SW_err.loc[sample, "dW"]
+                else:
+                    return 0, 0
+            else:
+                return self.SW_err
 
         elif name == "check box values":
             return self.check_boxes
@@ -138,6 +148,9 @@ class DoTheMathStoreTheData:
         elif name == "smoothing amount":
             return self.check_boxes.loc["CheckButtons", "smoothing_window_size"]
 
+        elif name == "gaussian smoothing":
+            return self.check_boxes.loc["CheckButtons", "gaussian_smoothing"]
+
         elif name == "reference":
             return self.reference.get()
 
@@ -153,13 +166,13 @@ class DoTheMathStoreTheData:
             else:
                 tk.messagebox.showerror('Error', "column name not in filename labels")
 
-        elif name == "c_norm":  # . added this (although not sure if it is needed)
-            return self.c_norms
+        elif name == "c_norm":
+            return self.C_norms
 
         else:
             tk.messagebox.showerror('Error', "No variable by the name {}.".format(name))
 
-    def set(self, name, key=None, data=None, value=None, new_key=None, c_norm=None):  # . added c_norm stuff
+    def set(self, name, key=None, data=None, value=None, new_key=None, c_norm=None):
         name = name.lower()
         if name == "raw data":
             # TODO check the data type to ensure compatibility
@@ -176,8 +189,8 @@ class DoTheMathStoreTheData:
             xpeak = 511
             distance_to_peak = abs(value - xpeak)  # to set the symmetry value
             # loop through three cases
-            left_options = ("SmaxL", "WminL", "WmaxL")
-            for n, option in enumerate(("Smax", "Wmin", "Wmax")):
+            left_options = ("S-ROI Min (keV)", "Left W-ROI Min (keV)", "Left W-ROI Max (keV)")
+            for n, option in enumerate(("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)")):
                 if key == option:
                     # check size
                     if value < xpeak:
@@ -187,7 +200,7 @@ class DoTheMathStoreTheData:
                     else:
                         self.parameters[option] = round(value, 2)
                         self.parameters[left_options[n]] = round(xpeak - distance_to_peak, 2)
-                elif key not in ("Smax", "Wmin", "Wmax"):
+                elif key not in ("S-ROI Max (keV)", "Right W-ROI Min (keV)", "Right W-ROI Max (keV)"):
                     tk.messagebox.showerror('Error', "Invalid key")
         elif name == "smoothing":
             if value is None:
@@ -213,16 +226,15 @@ class DoTheMathStoreTheData:
                 self.filename_labels = new_key
 
             elif isinstance(new_key, str):
-                # updates a single valuef
+                # updates a single value
                 self.filename_labels[key] = new_key
             else:
                 tk.messagebox.showerror('Error', "Not a dictionary or a string: "+str(type(new_key)))
 
-        elif name == "c_norm":  # . added this
+        elif name == "c_norm":
             if key is None or c_norm is None:
                 tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
             self.C_norms[key] = c_norm
-            print("C_norm is", self.C_norms[key], "for", key)
 
     def remove(self, key):
         """ Needed to remove extra data at the request of the user. """
@@ -240,73 +252,57 @@ class DoTheMathStoreTheData:
         ref toggles the location the sw data is saved. """
         SW_idx = {}
         SW = {}
-        SW_err = {}  # . added
-        print("norms", self.C_norms)  # . todo del
+        SW_err = {}
 
         # collect the indices for the SW bounds - they all share the same x axis
-        for key in ("WmaxL", "SmaxL", "Wmin"):
+        for key in ("Left W-ROI Max (keV)", "S-ROI Min (keV)", "Right W-ROI Min (keV)"):
             SW_idx[key] = np.where(df['x'] <= self.parameters[key])[0][-1]
-        for key in ("WminL", "Smax", "Wmax"):
+        for key in ("Left W-ROI Min (keV)", "S-ROI Max (keV)", "Right W-ROI Max (keV)"):
             SW_idx[key] = np.where(df['x'] >= self.parameters[key])[0][0]
 
         if ref:
             # calculate the ref first
-            Sref = (np.trapz(df[self.reference.get()][SW_idx["SmaxL"]:SW_idx["Smax"] + 1],
-                             df['x'][SW_idx["SmaxL"]:SW_idx["Smax"] + 1]) /
+            Sref = (np.trapz(df[self.reference.get()][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1],
+                             df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1]) /
                     np.trapz(df[self.reference.get()], df['x'])
                     )
-            Wref = ((np.trapz(df[self.reference.get()][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                              df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                     np.trapz(df[self.reference.get()][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                              df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1])) /
+            Wref = ((np.trapz(df[self.reference.get()][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                              df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                     np.trapz(df[self.reference.get()][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                              df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1])) /
                     np.trapz(df[self.reference.get()], df['x'])
                     )
 
-        for col in df.columns[1:]:  # . added unc and num stuff to this for loop
-            print()
+        for col in df.columns[1:]:
             # calculate S and W for that data set
-            S = (np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"]+1],
-                          df['x'][SW_idx["SmaxL"]:SW_idx["Smax"]+1]) /
+            S = (np.trapz(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1],
+                          df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"]+1]) /
                  np.trapz(df[col], df['x']))
 
-            W = ((np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                           df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                  np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                           df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1])) /
+            W = ((np.trapz(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                           df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                  np.trapz(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                           df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1])) /
                  np.trapz(df[col], df['x']))
 
-            # N_S = sum(df[col][SW_idx["SmaxL"]:SW_idx["Smax"] + 1]) * self.C_norms[col]
-            # N_W = (sum(df[col][SW_idx["WmaxL"]:SW_idx["WminL"]+1]) +
-            #        sum(df[col][SW_idx["Wmin"]:SW_idx["Wmax"]+1])) * self.C_norms[col]
-            # N_total = sum(df[col]) * self.C_norms[col]
-            N_W = ((np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"] + 1],
-                             df['x'][SW_idx["WmaxL"]:SW_idx["WminL"] + 1]) +
-                    np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"] + 1],
-                             df['x'][SW_idx["Wmin"]:SW_idx["Wmax"] + 1]))) * self.C_norms[col]
-            N_S = (np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"] + 1],
-                            df['x'][SW_idx["SmaxL"]:SW_idx["Smax"] + 1])) * self.C_norms[col]
+            N_W = ((np.trapz(df[col][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1],
+                             df['x'][SW_idx["Left W-ROI Max (keV)"]:SW_idx["Left W-ROI Min (keV)"] + 1]) +
+                    np.trapz(df[col][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1],
+                             df['x'][SW_idx["Right W-ROI Min (keV)"]:SW_idx["Right W-ROI Max (keV)"] + 1]))) \
+                  * self.C_norms[col]
+            N_S = (np.trapz(df[col][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1],
+                            df['x'][SW_idx["S-ROI Min (keV)"]:SW_idx["S-ROI Max (keV)"] + 1])) * self.C_norms[col]
             N_total = np.trapz(df[col], df['x']) * self.C_norms[col]
-            print("N_total =", N_total)
-            print("N_S/N_total", N_S/N_total, "vs calculated S", S)
-            print("N_W/N_total", N_W/N_total, "vs calculated W", W)
 
             dS = (N_S / N_total) * np.sqrt(1 / N_S + 1 / N_total)
             dW = (N_W / N_total) * np.sqrt(1 / N_W + 1 / N_total)
-            print("ds:", dS, "& dW:", dW)
-            print("np.trapz(df[col], df['x']) =", np.trapz(df[col], df['x']))
-
-            # print("S", S, np.trapz(df[col][SW_idx["SmaxL"]:SW_idx["Smax"]+1],
-            #       df['x'][SW_idx["SmaxL"]:SW_idx["Smax"]+1]), np.trapz(df[col], df['x']),
-            #       "W", W, (np.trapz(df[col][SW_idx["WmaxL"]:SW_idx["WminL"]+1],
-            #       df['x'][SW_idx["WmaxL"]:SW_idx["WminL"]+1]) + np.trapz(df[col][SW_idx["Wmin"]:SW_idx["Wmax"]+1],
-            #       df['x'][SW_idx["Wmin"]:SW_idx["Wmax"]+1])), np.trapz(df[col], df['x']))  # . TODO Delete print here and above
 
             if ref:
                 S /= Sref
                 W /= Wref
 
             SW[col] = {"S": S, "W": W}
-            SW_err[col] = {"dS": dS, "dW": dW}  # . added
+            SW_err[col] = {"dS": dS, "dW": dW}
 
             # don't want to duplicate any entries
             if not ref:
@@ -322,16 +318,22 @@ class DoTheMathStoreTheData:
                 else:
                     self.SWRef.loc[col, "S"] = S
                     self.SWRef.loc[col, "W"] = W
-                self.SW_err.loc[col, "dS"] = dS  # . added this
-                self.SW_err.loc[col, "dW"] = dW  # . added this
+                self.SW_err.loc[col, "dS"] = dS
+                self.SW_err.loc[col, "dW"] = dW
             else:
                 # safe to add to the data frame
                 if not ref:
-                    self.SW = self.SW.append(pd.DataFrame({"S": S, "W": W}, index=[col]))
+                    self.SW = pd.concat([self.SW, pd.DataFrame({"S": S, "W": W}, index=[col])])
                 else:
-                    self.SWRef = self.SWRef.append(pd.DataFrame({"S": S, "W": W}, index=[col]))
-                self.SW_err = self.SW_err.append(pd.DataFrame({"dS": dS, "dW": dW}, index=[col]))  # . added this
-        return SW, SW_err  # . added sw_err
+                    self.SWRef = pd.concat([self.SWRef, pd.DataFrame({"S": S, "W": W}, index=[col])])
+
+                rows2 = [val for val in self.SW_err.index]
+                if col in rows2:
+                    self.SW_err.loc[col, "dS"] = dS
+                    self.SW_err.loc[col, "dW"] = dW
+                else:
+                    self.SW_err = pd.concat([self.SW_err, pd.DataFrame({"dS": dS, "dW": dW}, index=[col])])
+        return SW, SW_err
 
     def calc_ratio_curves(self, ref_key, window_size=1, folding=True, shift=True, drop_ref=False, gauss=False):
         """
@@ -690,7 +692,7 @@ class DoTheMathStoreTheData:
         return data2D, cal
 
     @staticmethod
-    def reduce_data(data2D, cal):
+    def reduce_data(data2D, cal, interp_step):
         # default to read the calibration saved in mpa
         # this produces the coefficients for a 1st order polynomial  (linear)
         det1cal = np.polyfit(cal[0][::2], cal[0][1::2], 1)
@@ -705,11 +707,11 @@ class DoTheMathStoreTheData:
         x = det2cal[1] + det2cal[0] * x
 
         # this data set is too large to use practically, and we only care about the center anyway
-        # isolate the square bound by 460 < x, y < 560
-        lower_bound = 460
-        upper_bound = 560
+        # isolate the square bound by 461 < x, y < 561
+        lower_bound = 461
+        upper_bound = 561
 
-        # find the interval such that 460 < x,y < 560
+        # find the interval such that 461 < x,y < 561
         lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
         rx = np.where(x[0] < upper_bound)[0][-1]  # isolate the rightmost element
         ly = np.where(y[:, 0] > lower_bound)[0][0]
@@ -722,7 +724,6 @@ class DoTheMathStoreTheData:
         y2 = y[ly:ry, lx:rx]
         data2D = data2D[ly:ry, lx:rx]
 
-        interp_step = 0.15
         x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
         f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
@@ -731,7 +732,7 @@ class DoTheMathStoreTheData:
         return x2i, y2i, data2i
 
     @staticmethod
-    def isolate_diagonal(x2i, y2i, data2i):
+    def isolate_diagonal(x2i, y2i, data2i, interp_step):
         # the next step is to isolate that diagonal
         max_loc = np.argmax(data2i)  # flattens the array and returns the index of the max value
         r = max_loc // len(data2i)  # integer division returns the row index
@@ -739,31 +740,24 @@ class DoTheMathStoreTheData:
         Epeak = x2i[r, c] + y2i[r, c]  # sum of coords is the energy of the photon that hit the detector
         epsilon = 2  # width of the box is 2 keV
         E1E2 = x2i + y2i  # sum of the energy at each location
-        # pd.DataFrame(E1E2).to_excel("E1E2 pre.xlsx")  # . todo delete this
         E1E2 = E1E2.flatten()
-        # pd.DataFrame(E1E2).to_excel("E1E2 post.xlsx")  # . todo delete this
 
         # with masked array module from numpy. masked_inside is inclusive of endpoints
-        mask = np.ma.masked_inside(E1E2, Epeak - epsilon, Epeak + epsilon).mask
+        mask = np.ma.masked_inside(E1E2, Epeak - epsilon, Epeak + epsilon + interp_step).mask
 
         # next is line 246 in the MATLAB code.
         dE = (x2i - y2i) / 2
-        # pd.DataFrame(dE).to_excel("dE pre.xlsx")  # . todo delete this
         dE = dE.flatten()
         dE = dE[mask]  # keep only the values in the rectangle
-        # pd.DataFrame(dE).to_excel("dE post.xlsx")  # . todo delete this
 
         # take the expected counts for the values in our rectangle
         expcnt = data2i.flatten()[mask]
-        # pd.DataFrame(expcnt).to_excel("expcnt.xlsx")  # . todo delete this
 
-        # add up counts for overlapped dE, check counts vs reduced dE
+        # add up counts for overlapped dE, check counts vs. reduced dE
         combo = np.array([dE, expcnt]).transpose()
-        # pd.DataFrame(combo).to_excel("combo pre.xlsx")  # . todo delete this
 
         combo = combo[combo[:, 0].argsort()]  # sort based on the first column
-        # pd.DataFrame(combo).to_excel("combo is=.2 sorted.xlsx")  # . todo delete this
-        print("combo 1st,", combo[int(len(combo)/2-30):int(len(combo)/2+30)])
+
         # if neighboring rows are close enough, make them exactly close
         tol = 1e-3
         for k in range(len(combo[:, 0]) - 1):
@@ -772,44 +766,27 @@ class DoTheMathStoreTheData:
                 # the next value is almost the same, make it the same
                 combo[k + 1, 0] = combo[k, 0]
                 # leave the expected counts alone
-        # pd.DataFrame(combo).to_excel("combo combined.xlsx")  # . todo delete this
+
         # now we reduce the size of the combo list - histcounts section
         short_dE = np.unique(combo[:, 0])  # collect all unique values from dE
-        # from matplotlib import pyplot as plt  # .
-        # plt.plot(short_dE, label="short_dE")  # .
+
         new_cnts = np.zeros_like(short_dE)  # placeholder for the counts
         new_combo = np.array([short_dE, new_cnts]).transpose()
-        # plt.plot(new_combo, label="new_combo")  # .
-        # plt.figure()  # .
+
         combo_n = np.digitize(combo[:, 0], short_dE)  # create a mapping for which bin each value belongs
-        # plt.plot(combo_n, ".", label="combo_n")  # .
-        # plt.plot(combo, label="combo") # .
-        print("\n combo", combo[int(len(combo)/2-30):int(len(combo)/2+30)])
-        print("combo_n", combo_n[int(len(combo)/2-30):int(len(combo)/2+30)])  # . todo maybe try middle chunk???
+
         for i in range(len(combo[:, 0]) - 1):
-            if abs(combo[:, 0][i] - combo[:, 0][i + 1]) < 1e5:  # . todo this only works because it basically says "if TRUE", but look into a better way and also look into if there might be a intentional reason for this way
+            if abs(combo[:, 0][i] - combo[:, 0][i + 1]) < 1e5:  # todo this only works because it basically says "if TRUE", but look into a better way and also look into if there might be a intentional reason for this way
                 # for matching values, add the counts to the correct bin
-                # print(i, combo[i,0], combo[i,1], combo_n[i], "|||", combo[:, 0][i], combo[:, 0][i + 1], combo[:, 0][i] - combo[:, 0][i + 1])
                 # combo_n will identify the correct location, but it starts at 1.
                 new_combo[:, 1][combo_n[i] - 1] += abs(combo[:, 1][i])
-            else:  # . todo delete this else
-                print("ELSED", i)
-        print("new combo", new_combo[int(len(new_combo)/2-2):int(len(new_combo)/2+3)])
-        # plt.plot(new_combo, ".", label="new_combo2")  # .
-        # plt.legend()  # .
-        # plt.show()  # .
+
         # normalize the data
-        import sys  # . todo delete this and np.set statement and prints
-        print("nc 1st", new_combo[:, 1])
-        # np.set_printoptions(threshold=sys.maxsize)  # .
         C_norm = np.trapz(new_combo[:, 1], new_combo[:, 0])
-        # print(sum(new_combo[:,1]))
         new_combo[:, 1] = new_combo[:, 1] / np.trapz(new_combo[:, 1],
                                                      new_combo[:, 0])  # order is opposite that of MATLAB
 
-        # print("nc 2nd", new_combo[:, 1], np.trapz(new_combo[:, 1], new_combo[:, 0]))
         # shift the x-axis
         new_combo[:, 0] += 511
-        # print("nc 3rd", new_combo[:,0])
 
-        return new_combo, C_norm  # . added C_norm stuff <-/|\
+        return new_combo, C_norm

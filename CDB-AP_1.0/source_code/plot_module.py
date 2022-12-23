@@ -7,7 +7,7 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk
 """ This tab contains the basic outline for the plot found in most tabs.
-Inherited from Ratio Curves, SW Parameter form, SW plot and SW ref plot."""
+Inherited from Ratio Curves, S and W parameter form, S vs. W plot, and S vs. W (Ref.) plot."""
 LABEL_FONT_SIZE = 20
 TICK_NUMBER_SIZE = 13
 LINE_WIDTH = 2
@@ -70,15 +70,15 @@ class PlotWindow(tk.Frame):
 
     def subframe1_buttons(self, parent):
         refresh_button = ttk.Button(master=parent, text="Refresh", command=self.refresh)
-        refresh_button.grid(row=0, column=0, sticky="nsew")
+        refresh_button.grid(row=0, column=0, sticky="nsw")
 
-        self.inputs["smoothing_label"] = ttk.Label(parent, text="Smoothing Window Size")
-        self.inputs["smoothing_label"].grid(row=0, column=1, sticky="nsew")
+        self.inputs["smoothing_label"] = ttk.Label(parent, text="Smoothing Window Size:")
+        self.inputs["smoothing_label"].grid(row=0, column=1, sticky="nse")
 
         self.inputs["Smoothing"] = ttk.Spinbox(parent, from_=1, to=1000, increment=1,
                                                textvariable=self.data_container.inputs["Smoothing"])
         # initialized in data_container
-        self.inputs["Smoothing"].bind("<Return>", self.plot)
+        self.inputs["Smoothing"].bind("<Return>", self.refresh)
         self.inputs["Smoothing"].grid(row=0, column=2, sticky="nsew")
 
         self.inputs["GaussianSmoothing"] = ttk.Checkbutton(parent, text="Gaussian Smoothing",
@@ -100,7 +100,7 @@ class PlotWindow(tk.Frame):
         plotFrame = tk.Frame(self)
 
         fig = Figure()  # figsize=(5, 6))
-        ax = fig.add_axes([.1, .1, .8, .8])
+        ax = fig.add_axes([.12, .12, .78, .78])
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])  # give legend room on the right
         ax.tick_params(direction='in', labelsize=TICK_NUMBER_SIZE)
@@ -142,36 +142,36 @@ class PlotWindow(tk.Frame):
 
     def subframe3(self, ncols=None):
         """ gray93 fills in the gaps to match the ttk widgets """
-        parent = tk.LabelFrame(self, text=None, background='gray93')
+        parent = tk.LabelFrame(self, text="Plot y-limits (normalized counts) and x-limits (keV)", background='gray93')
         # parent.rowconfigure(0, weight=1, uniform='row')
         if ncols:
             for n in range(ncols):
                 parent.columnconfigure(n, weight=1)
 
         # section for x and y axix
-        ttk.Label(parent, text="ymin").grid(row=1, column=0, sticky="nse")
+        ttk.Label(parent, text="y min:").grid(row=1, column=0, sticky="nse")
         # no w term in sticky to get the labels to cling to the spinboxes
         self.inputs["ymin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymin"].insert(tk.END, self.ymin)
-        self.inputs["ymin"].bind("<Return>", self.plot)
+        self.inputs["ymin"].bind("<Return>", self.refresh)
         self.inputs["ymin"].grid(row=1, column=1, sticky="nsew")
 
-        ttk.Label(parent, text="ymax").grid(row=1, column=2, sticky="nse")
+        ttk.Label(parent, text="y max:").grid(row=1, column=2, sticky="nse")
         self.inputs["ymax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["ymax"].insert(tk.END, self.ymax)
-        self.inputs["ymax"].bind("<Return>", self.plot)
+        self.inputs["ymax"].bind("<Return>", self.refresh)
         self.inputs["ymax"].grid(row=1, column=3, sticky="nsew")
 
-        ttk.Label(parent, text="xmin").grid(row=1, column=4, sticky="nse")
+        ttk.Label(parent, text="x min:").grid(row=1, column=4, sticky="nse")
         self.inputs["xmin"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmin"].insert(tk.END, self.xmin)
-        self.inputs["xmin"].bind("<Return>", self.plot)
+        self.inputs["xmin"].bind("<Return>", self.refresh)
         self.inputs["xmin"].grid(row=1, column=5, sticky="nsew")
 
-        ttk.Label(parent, text="xmax").grid(row=1, column=6, sticky="nse")
+        ttk.Label(parent, text="x max:").grid(row=1, column=6, sticky="nse")
         self.inputs["xmax"] = ttk.Spinbox(parent, from_=-50, to=600, increment=0.1, width=10)
         self.inputs["xmax"].insert(tk.END, self.xmax)
-        self.inputs["xmax"].bind("<Return>", self.plot)
+        self.inputs["xmax"].bind("<Return>", self.refresh)
         self.inputs["xmax"].grid(row=1, column=7, sticky="nsew")
 
         b = ttk.Button(parent, text="Use Limits from Plot", command=self.get_axis_limits)
@@ -191,11 +191,17 @@ class PlotWindow(tk.Frame):
         # place them into the input boxes
         for n in range(4):
             self.inputs[keys[n]].delete(0, tk.END)
-            self.inputs[keys[n]].insert(tk.END, round(lims[n], 2))
+            self.inputs[keys[n]].insert(tk.END, round(lims[n], 5))
 
     def refresh(self, *args):
         # include this as a way to change the data for the plot
         self.plot()
+
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     def toggle_fold(self):
         self.fold_value_changed = True

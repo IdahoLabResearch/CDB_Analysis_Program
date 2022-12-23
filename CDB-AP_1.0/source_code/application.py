@@ -2,12 +2,12 @@
 
 import tkinter as tk
 from tkinter import ttk
-from . import fileuploadform
-from . import ratiocurveplot
-from . import swparameterform
-from . import svswplot
-from . import swref
-from . import MathModule as m
+from . import file_upload_form
+from . import ratio_curves_plot
+from . import SW_parameter_form
+from . import S_vs_W_plot
+from . import SvsW_ref_plot
+from . import math_module as m
 
 
 class Application(tk.Tk):
@@ -15,13 +15,13 @@ class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.title("CDB Plotting Application")
+        self.title("CDB Analysis Program")
         self.resizable(width=None, height=None)
         self.minsize(800, 600)
 
         ttk.Label(
             self,
-            text="CDB Plotting Application",
+            text="CDB Analysis Program",
             font=("TkDefaultFont", 16)
         ).grid(row=0)
 
@@ -36,14 +36,14 @@ class Application(tk.Tk):
 
     def load_pages(self):
         """ store the initial code to load each tab """
-        load_tab = fileuploadform.FileUploadForm(self.notebook, self.data_container)
-        SW_info_tab = swparameterform.SWParameterForm(self.notebook, self.data_container)
-        ratio_curve_tab = ratiocurveplot.RatioCurvePlot(self.notebook, self.data_container)
-        SvsW_plot_tab = svswplot.SvsWPlot(self.notebook, self.data_container)
-        SWRef_tab = swref.SWRef(self.notebook, self.data_container)
+        load_tab = file_upload_form.FileUploadForm(self.notebook, self.data_container)
+        SW_parameter_tab = SW_parameter_form.SWParameterForm(self.notebook, self.data_container)
+        ratio_curves_tab = ratio_curves_plot.RatioCurvesPlot(self.notebook, self.data_container)
+        SvsW_plot_tab = S_vs_W_plot.SvsWPlot(self.notebook, self.data_container)
+        SvsW_ref_tab = SvsW_ref_plot.SvsWRefPlot(self.notebook, self.data_container)
 
         self.notebook.add(load_tab, text="Load")
-        self.notebook.add(SW_info_tab, text="SW Params")
-        self.notebook.add(ratio_curve_tab, text="Ratio Curves")
-        self.notebook.add(SvsW_plot_tab, text="S vs W")
-        self.notebook.add(SWRef_tab, text="S/W Ref")
+        self.notebook.add(SW_parameter_tab, text="S and W Parameters")
+        self.notebook.add(ratio_curves_tab, text="Ratio Curves")
+        self.notebook.add(SvsW_plot_tab, text="S vs. W")
+        self.notebook.add(SvsW_ref_tab, text="S vs. W (Ref.)")

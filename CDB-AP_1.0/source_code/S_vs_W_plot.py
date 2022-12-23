@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from . import PlotModule as p
+from . import plot_module as p
 import mplcursors
 
 
@@ -11,7 +11,7 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
 
         self.rowconfigure(1, weight=1)  # let the plot resize
 
-        self.label = tk.Label(self, text="Welcome to the S vs W plotting section")
+        self.label = tk.Label(self, text="Welcome to the S vs. W plotting section")
         self.label.grid(row=0, column=0, padx=10, pady=10)
         self.name = name
         # load the data
@@ -47,11 +47,17 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
             # to pop up multiple times each click
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
-                tk.messagebox.showerror("Error", "Please set/check SW parameters first")
+                tk.messagebox.showerror("Error", 'Please load the "S and W Parameters" tab before loading this tab')
+
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     def plot(self):
-        # we have to extract the data here because it can change any time we change the sw param tab
-        SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)  # . added sw)err
+        # we have to extract the data here because it can change any time we change the S and W parameters tab
+        SW, SW_err = self.data_container.calculate_S(self.data, ref=self.ref)
         self.ax.clear()
 
         if not self.data_container.inputs["FlippingState"].get():
@@ -61,24 +67,12 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
             xlabel = "S"
             ylabel = "W"
 
-        # s = [SW[key][xlabel] for key in SW]  # . todo delete commented out code
-        # w = [SW[key][ylabel] for key in SW]
-        # hover_labels = ["S = " + str(SW[key][xlabel]) + " +/- " + str(SW_err[key]["dS"]) +
-        #                 "\nW = " + str(SW[key][ylabel]) + " +/- " + str(SW_err[key]["dW"]) for key in SW]
-        # print(hover_labels, "hv")
-        # left click or hover to view, right click to hide.
-        # cursor = mplcursors.cursor(self.ax.plot(s, w, ','), hover=True, multiple=True)  # . added multiple = true
-        # cursor.connect("add", lambda sel: sel.annotation.set_text(hover_labels[sel.index()]))
-
         for key in SW:
             if self.data_container.hidden_state[key].get() == 'Visible':
-                # self.ax.plot(SW[key][xlabel], SW[key][ylabel], self.data_container.marker[key].get(),
-                #              label=self.data_container.get('label', key), # . todo delete commented out code
-                #              color=self.data_container.color[key].get())
                 self.ax.errorbar(SW[key][xlabel], SW[key][ylabel], fmt=self.data_container.marker[key].get(),
                              yerr=SW_err[key]["dS"], xerr=SW_err[key]["dW"], label=self.data_container.get('label', key),
-                             color=self.data_container.color[key].get())  # . added this error bar stuff
-        mplcursors.cursor(self.ax, hover=True, multiple=True)  # . added here commented out above
+                             color=self.data_container.color[key].get())
+        mplcursors.cursor(self.ax, hover=True, multiple=True)
 
         self.ax.set_ylabel(ylabel, fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_xlabel(xlabel, fontsize=p.LABEL_FONT_SIZE)

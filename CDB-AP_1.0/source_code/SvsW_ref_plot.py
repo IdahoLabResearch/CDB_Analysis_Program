@@ -1,14 +1,14 @@
 import tkinter as tk
-from . import svswplot as s
+from . import S_vs_W_plot as s
 
 
-class SWRef(s.SvsWPlot, tk.Frame):
+class SvsWRefPlot(s.SvsWPlot, tk.Frame):
 
     def __init__(self, name, data_container, *args, **kwargs):
         super().__init__(name, data_container, *args, **kwargs)
 
         self.label.destroy()
-        self.label = tk.Label(self, text="Welcome to the S vs W plotting section with references")
+        self.label = tk.Label(self, text="Welcome to the S vs. W plotting section with references")
         self.label.grid(row=0, column=0, padx=10, pady=10)
         self.name = name  # todo Check if this variable is needed
         self.data_container = data_container
@@ -35,6 +35,12 @@ class SWRef(s.SvsWPlot, tk.Frame):
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
                 tk.messagebox.showerror("Error", "Please load data first")
+
+        # store the parameters that were used for this instance.
+        self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
+        self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
+        self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     def plot(self):
         super().plot()

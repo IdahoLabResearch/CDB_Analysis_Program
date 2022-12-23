@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import pandas as pd
-from .PlotModule import LoadingScreen, Marker
+from .plot_module import LoadingScreen, Marker
 from tkinter import colorchooser
 import os
 import numpy as np
@@ -34,8 +34,8 @@ class FileUploadForm(tk.Frame):
 
         # Declare Variables
         self.new_file = True
-        self.delete_tracker = {}
-        self.del_button = {}  # included to help select them all later
+        self.selection_tracker = {}
+        self.select_button = {}  # included to help select them all later
         self.var = tk.IntVar
         self.loaded_file_frame = ''  # Placeholder
 
@@ -62,57 +62,60 @@ class FileUploadForm(tk.Frame):
         fileinfo.grid(row=0, column=0, columnspan=5, sticky="nsew")
 
         # Create the buttons
-        process_mpa_button = ttk.Button(self, text="Process a .mpa file", command=self.process_mpa)
-        load_button = ttk.Button(self, text="Load Data", command=self.open_file)
-        select_all = ttk.Button(self, text="Select all", command=self.select_all)
-        delete_button = ttk.Button(self, text="Delete selected files", command=self.delete_files)
-        process_TechnoAP_button = ttk.Button(self, text="Process a TechnoAP file", command=self.process_TechnoAP)
+        process_FComTec_button = ttk.Button(self, text="Process FAST ComTec File", command=self.process_FComTec)
+        process_TechnoAP_button = ttk.Button(self, text="Process TechnoAP File", command=self.process_TechnoAP)
+        load_button = ttk.Button(self, text="Load Preprocessed Data", command=self.open_file)
+        select_all = ttk.Button(self, text="Select All", command=self.select_all)
+        delete_button = ttk.Button(self, text="Delete Selected Data Sets", command=self.delete_files)
 
-        # using a button to update the filenames because the focus out method was too confusing
-        # to figure out in a reasonable amount of time
-        rename_button = ttk.Button(self, text="Update filenames", command=self.update_names)
         # reset the labels in case the user makes a mistake
-        reset_labels = ttk.Button(self, text="Reset filenames", command=self.reset_names)
-        save_button = ttk.Button(self, text="Save raw data", command=self.save_file_data)
+        reset_labels = ttk.Button(self, text="Reset Selected Labels", command=self.reset_names)
+        save_button = ttk.Button(self, text="Save Raw Data", command=self.save_file_data)
 
         # first column
-        process_mpa_button.grid(row=1, column=0, sticky="nsew")
-        load_button.grid(row=2, column=0, sticky="nsew")
+        process_FComTec_button.grid(row=1, column=0, sticky="nsew")
+        process_TechnoAP_button.grid(row=2, column=0, sticky="nsew")
+        load_button.grid(row=3, column=0, sticky="nsew")
         save_button.grid(row=4, column=0, sticky="nsew")
-        process_TechnoAP_button.grid(row=5, column=0, sticky="nsew")
         self.save_options(row=6, column=0, rowspan=4)  # extend onto the bottom row
 
         # second column
         self.file_row = 1
         self.file_col = 1
         self.file_rowspan = 7  # to avoid resizing the buttons as more files are added
-        self.file_columnspan = 4
+        self.file_columnspan = 3
         self.display_files()
 
         # bottom row
         select_all.grid(row=9, column=1, sticky="nsew")
-        rename_button.grid(row=9, column=2, sticky="nsew")
-        reset_labels.grid(row=9, column=3, sticky="nsew")
-        delete_button.grid(row=9, column=4, sticky="nsew")
+        reset_labels.grid(row=9, column=2, sticky="nsew")
+        delete_button.grid(row=9, column=3, sticky="nsew")
 
     def process_TechnoAP(self):
-        """ load a TechnoAP CDB file, convert it to be formatted like a mpa file, then process it"""
+        """ load a TechnoAP CDB file, convert it to be formatted like an MPA file, then process it"""
         file_path = askopenfilename()
         self.update()  # to clear the dialog box
         if file_path != "":
             loader = LoadingScreen(self)
             loader.add_progress_bar()
 
+            # Find the row right before data starts
+            temp_df = pd.read_csv(file_path, names=["a", "b", "c"])
+            header_row = 0
+            for i in range(0, 30):
+                if temp_df.loc[i, "a"] == "[Data]":
+                    header_row = i + 1
+                    break
+
             # Read data from csv file into a dataframe, then update progress bar
-            TechnoAP_data = pd.read_csv(file_path, header=12)
-            print(TechnoAP_data)  # . todo delete
+            TechnoAP_data = pd.read_csv(file_path, header=header_row)
             loader.update_progress_bar(25)
 
             # Define variables
             num_channels = 8192
             mpa_list = []
 
-            # This next portion formats the TechnoAP CDB data into something like the .mpa files this program first
+            # This next portion formats the TechnoAP CDB data into something like the MPA files this program first
             #   analyzed, allowing the TechnoAP data to be processed like that data.
             # TechnoAP's data is formatted such that we are given the row (channel from CH2) and column
             #   (channel from CH1) of each CH2/CH1 channel combination that has a count, along with the count at that
@@ -188,12 +191,12 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(25)
 
             # Ask user if they want to save this data (Only include if you need to save the file with all the zeros)
-            MsgBox = 'no'  # tk.messagebox.askquestion('Save mpa-like data', 'Save the data formatted like .mpa? The ' +
+            MsgBox = 'no'  # tk.messagebox.askquestion('Save MPA-like data', 'Save the data formatted like MPA? The ' +
                            #                     'application will finish processing the data for analysis either way.')
             if MsgBox == 'yes':
                 # extract the new file name
                 # separator = '/'  # different in MacOS and Windows10
-                filename2 = os.path.split(file_path)[1].removesuffix(".csv") + " mpa-like format"
+                filename2 = os.path.split(file_path)[1].removesuffix(".csv") + " MPA-like format"
                 filepath = os.path.split(file_path)[0]
 
                 # see if the user wants to change the name
@@ -210,11 +213,11 @@ class FileUploadForm(tk.Frame):
             loader.update_progress_bar(50)
 
             #####
-            # Because mpa_list doesn't have the extensive header that the actual .mpa files have, few of the
-            #   functions used by the mpa file processor could be used directly. As such, the following is
+            # Because mpa_list doesn't have the extensive header that the actual MPA files have, few of the
+            #   functions used by the MPA file processor could be used directly. As such, the following is
             #   a mashup of several functions combined in such a way as to get the same result.
 
-            # The next bit is borrowed with some changes from read_data2D() in MathModule.py
+            # The next bit is copied with some changes from read_data2D() in math_module.py
 
             # np.fromiter(a, dtype=float) is about 3 seconds faster than np.array(a, dtype=float)
             # however it only works for one dimensional arrays.
@@ -226,7 +229,6 @@ class FileUploadForm(tk.Frame):
 
             # The next bit was written to compensate for TechnoAP's data files not including information for
             # energy calibration
-            print("HERE") # .
             det1cal, det2cal = np.array([None, None]), np.array([None, None])
             loader.destroy()
             # CH1's info goes to det2cal. This could be changed, but then edits elsewhere will need to be made,
@@ -242,13 +244,13 @@ class FileUploadForm(tk.Frame):
             while det1cal[1] is None:
                 det1cal[1] = tk.simpledialog.askfloat("Input", "'b' for CH2:", minvalue=-100, maxvalue=100,
                                                       initialvalue=det2cal[1])
-            print("LINE 244")  # .
+
             loader = LoadingScreen(self)
             loader.add_progress_bar()
             loader.update_progress_bar(75)
 
             from scipy.interpolate import interp2d
-            # Borrowed the next bit from reduce_data() in MathModule.py
+            # Copied the next bit from reduce_data() in math_module.py
 
             # create a 2d grid for plotting
             x, y = np.meshgrid(np.arange(1, len(data2D[0]) + 1),
@@ -259,11 +261,11 @@ class FileUploadForm(tk.Frame):
             x = det2cal[1] + det2cal[0] * x
 
             # this data set is too large to use practically, and we only care about the center anyway
-            # isolate the square bound by 460 < x, y < 560
-            lower_bound = 460
-            upper_bound = 560
-            print("LINE 264")  # .
-            # find the interval such that 460 < x,y < 560
+            # isolate the square bound by 461 < x, y < 561
+            lower_bound = 461
+            upper_bound = 561
+
+            # find the interval such that 461 < x,y < 561
             lx = np.where(x[0] > lower_bound)[0][0]  # isolate the leftmost element
             rx = np.where(x[0] < upper_bound)[0][-1]  # isolate the rightmost element
             ly = np.where(y[:, 0] > lower_bound)[0][0]
@@ -274,56 +276,33 @@ class FileUploadForm(tk.Frame):
             ry += 1
             x2 = x[ly:ry, lx:rx]
             y2 = y[ly:ry, lx:rx]
-            # pd.DataFrame(x2).to_excel("x2.xlsx")  # . todo delete this
-            # pd.DataFrame(y2).to_excel("y2.xlsx")  # . todo delete this
-
-            # pd.DataFrame(x).to_excel("x.xlsx")  # . todo delete this
-            # pd.DataFrame(y).to_excel("y.xlsx")  # . todo delete this
             data2D = data2D[ly:ry, lx:rx]
-            # . TODO UP NEXT, FIGUREO UT WHY THE ENERGY INTERVALS ARE 0.075 instead of 0.15. Probably look at excel sheets on VDI
-            interp_step = 0.15# . 0.005
+            interp_step = 0.15
             x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                    np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
             f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
-            # pd.DataFrame(data2D).to_excel("data2D.xlsx")  # . todo delete this
-            # pd.DataFrame(x2i).to_excel("x2i.xlsx")  # . todo delete this
-            # pd.DataFrame(y2i).to_excel("y2i.xlsx")  # . todo delete this
             data2i = f(x2i[0], y2i[:, 0])
-            # pd.DataFrame(data2i).to_excel("data2i.xlsx")  # . todo delete this
-            # from matplotlib import pyplot as plt  # .
-            # plt.figure()
-            # plt.plot(data2D, label="data2D")  # .
-            # plt.legend()  # .
-            # plt.show()  # .
-            print("LINE 288")  # .
 
-            # Borrowed the next bit from process_mpa()
+            # Copied the next bit from process_FComTec()
 
-            # print("data2D", data2D)  # . todo delete these print statement
-            # print("x2i, y2i, and data2i",data2i)
-            # print(data2i.to_string()) x2i, y2i,
-            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
-            # print(C_norm, " =C_norm")
-            # print("combo", np.array(combo))
-            # print(combo.to_string())
+            combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)
+
             loader.update_progress_bar(25)
-
 
             # extract the new file name
             # split from right to left, but only make one split
             # separator = '/'  # different in MacOS and Windows10
             filename2 = os.path.split(file_path)[1].removesuffix(".csv") + "_511CDBpeak"
             filepath = os.path.split(file_path)[0]
-            print("Line 307")  # .
             # see if the user wants to change the name
             filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv")
             loader.destroy()
             self.update()
             if filename != '':
-                combo[:, 1] = combo[:, 1] * C_norm  # . Added this
+                combo[:, 1] = combo[:, 1] * C_norm
                 pd.DataFrame(combo).to_csv(filename, header=False, index=False)
-                combo[:, 1] = combo[:, 1] / C_norm  # . Added this
-                self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)   # . added this
+                combo[:, 1] = combo[:, 1] / C_norm
+                self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                 # with this successful, now we load the data into the application
                 # this is the same sequence of commands from open_file
@@ -335,8 +314,8 @@ class FileUploadForm(tk.Frame):
                 self.data_container.set(name="update key", key=filename, new_key=filename2)
                 self.display_files()
 
-    def process_mpa(self):
-        """ load a .mpa file and extract the 511 cdb peak """
+    def process_FComTec(self):
+        """ load FAST ComTec's MPA file and extract the 511 CDB peak """
         try:
             file_path = askopenfilename(filetypes=[("CDB data", ".mpa")])
             self.update()  # to clear the dialog box
@@ -350,8 +329,9 @@ class FileUploadForm(tk.Frame):
 
                 # pass the loading bar into the first method because this is the longest process
                 data2D, calibration = self.data_container.read_data2D(loader, file_path)
-                x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration)
-                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i)  # . added C_norm
+                interp_step = 0.15
+                x2i, y2i, data2i = self.data_container.reduce_data(data2D, calibration, interp_step)
+                combo, C_norm = self.data_container.isolate_diagonal(x2i, y2i, data2i, interp_step)
                 loader.update_progress_bar(25)
 
                 # extract the new file name
@@ -373,7 +353,10 @@ class FileUploadForm(tk.Frame):
                 loader.destroy()
                 self.update()
                 if filename != '':
+                    combo[:, 1] = combo[:, 1] * C_norm
                     pd.DataFrame(combo).to_csv(filename, header=False, index=False)
+                    combo[:, 1] = combo[:, 1] / C_norm
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                     # with this successful, now we load the data into the application
                     # this is the same sequence of commands from open_file
@@ -407,9 +390,9 @@ class FileUploadForm(tk.Frame):
                         else:
                             new_df = pd.read_csv(filename, sep='   ', engine='python', header=None)
 
-                    C_norm = np.trapz(new_df.iloc[:, 1], new_df.iloc[:, 0])  # . added c_ norm stuff
+                    C_norm = np.trapz(new_df.iloc[:, 1], new_df.iloc[:, 0])
                     new_df.iloc[:, 1] = new_df.iloc[:, 1] / C_norm
-                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)  # . added this too  # . TODO ADD STUFF TO MPA STUFF
+                    self.data_container.set(name="c_norm", key=filename, c_norm=C_norm)
 
                     # load as pandas dataframes
                     new_df.columns = ["x", filename]
@@ -420,14 +403,18 @@ class FileUploadForm(tk.Frame):
                     # don't forget to display!
                     self.display_files()
 
-                else:  # / NOTE: I don't know what "reloading old data" means, so I'm not going to touch this section.
-                    # header present indicates reloading old data.
+                else:
+                    # header present indicates reloading old data that was saved via the "Save Raw Data" button
                     # now read it back in
                     new_df = pd.read_csv(filename)
                     # convert to dictionary
                     d = self.data_container.from_df_to_dict(new_df)
                     # save to data structure
                     for key in d:
+                        C_norm = np.trapz(d[key][:, 1], new_df['x'][:])
+                        d[key][:, 1] = d[key][:, 1] / C_norm
+                        self.data_container.set(name="c_norm", key=key, c_norm=C_norm)
+
                         self.data_container.set(name="raw data", key=key, data=d[key])
 
                     # don't forget to display!
@@ -435,7 +422,7 @@ class FileUploadForm(tk.Frame):
 
         except ValueError:
             # todo replace with dialog box
-            tk.messagebox.showerror("Error", "Open a single compatible (txt or csv) file. This button is not for reloading.")
+            tk.messagebox.showerror("Error", "Open a single compatible (txt or csv) file. This button is not for processing data.")
 
     @ staticmethod
     def check_for_header(filename):
@@ -473,7 +460,7 @@ class FileUploadForm(tk.Frame):
             # if there is no frame to destroy then we are fine.
             pass
 
-        self.loaded_file_frame = tk.LabelFrame(self, text="Current loaded files", background='gray93')
+        self.loaded_file_frame = tk.LabelFrame(self, text="Currently loaded data sets", background='gray93')
         self.loaded_file_frame.rowconfigure(0, weight=1)
         files = self.data_container.get("keys")
 
@@ -494,9 +481,9 @@ class FileUploadForm(tk.Frame):
             files = ["Ready to load some data!"]
 
         for n, filename in enumerate(files):
-            self.delete_tracker[filename] = tk.IntVar()
-            self.del_button[filename] = ttk.Checkbutton(self.loaded_file_frame, variable=self.delete_tracker[filename])
-            self.del_button[filename].grid(row=n, column=0)
+            self.selection_tracker[filename] = tk.IntVar()
+            self.select_button[filename] = ttk.Checkbutton(self.loaded_file_frame, variable=self.selection_tracker[filename])
+            self.select_button[filename].grid(row=n, column=0)
             # to get left aligned we anchor to the west side. However, this is only noticeable if
             # all of the boxes are the same size, hence width = 35
             # the file names tend to be around 26 - 30 characters long
@@ -606,14 +593,25 @@ class FileUploadForm(tk.Frame):
         """ updates the list of short user defined labels. Can be called manually
         or by <FocusOut> on the specific label defined in display_files()"""
         # store the labels in the data container
+        ref = self.data_container.get('key', sample=str(self.data_container.reference.get()))
+
         new_names = {key: val.get() for key, val in self.filename_labels.items()}
         self.data_container.set("update key", new_key=new_names)
 
+        # fixme The below line now means that changing the reference label resets the displayed reference label for
+        #   both the "Ratio Curves" tab and the "S vs. W (Ref.)" tab. Also, resetting any label resets the displayed
+        #   label for both tabs. This is a separate issue from whatever is causing the displayed labels to
+        #   reset every time the "S vs. W (Ref.)" tab gets visited. The below line was added because, without it,
+        #   errors were appearing when changing/resetting names and navigating tabs in various ways
+        self.data_container.set("reference", key=ref)
+
+
     def reset_names(self):
-        keys = self.data_container.get("keys")
+        keys = list(self.selection_tracker.keys())
         for key in keys:
-            self.filename_labels[key].delete(0, tk.END)
-            self.filename_labels[key].insert(tk.END, key)
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":
+                self.filename_labels[key].delete(0, tk.END)
+                self.filename_labels[key].insert(tk.END, key)
 
         # now replace the labels in the data container.
         self.update_names()
@@ -623,14 +621,19 @@ class FileUploadForm(tk.Frame):
         # loop through all the files that are currently loaded
         files = self.data_container.get("keys")
         for file in files:
-            self.del_button[file].state(selected)
-            self.delete_tracker[file].set(1)
+            self.select_button[file].state(selected)
+            self.selection_tracker[file].set(1)
 
     def save_options(self, row, column, rowspan=1, colspan=1):
         # save option box
-        save_box = tk.LabelFrame(self, text="Processed data to save", background='gray93')
+        save_box = tk.LabelFrame(self, text="Analyzed data to save", background='gray93')
         save_box.rowconfigure(4, weight=1)  # need to configure this row with this weight to get it show on the bottom
-        width = 20
+        if platform.system() == 'Darwin':  # macOS
+            width = 20
+        else:
+            # account for Windows
+            width = 25
+
 
         self.inputs["RatioCurveState"] = tk.IntVar()
         self.inputs["RatioCurves"] = ttk.Checkbutton(save_box, text="Ratio Curves",
@@ -645,9 +648,9 @@ class FileUploadForm(tk.Frame):
         self.inputs["SW"].grid(row=1, sticky='n')
 
         self.inputs["SWRefState"] = tk.IntVar()
-        self.inputs["SWRef"] = ttk.Checkbutton(save_box, text="S and W with reference",
+        self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S and W with Reference",
                                                variable=self.inputs["SWRefState"], width=width)
-        self.inputs["SWRef"].grid(row=2, sticky='n')
+        self.inputs["SvsWRefPlot"].grid(row=2, sticky='n')
 
         self.inputs["ParamState"] = tk.IntVar()
         self.inputs["Params"] = ttk.Checkbutton(save_box, text="Parameters", variable=self.inputs["ParamState"],
@@ -655,7 +658,7 @@ class FileUploadForm(tk.Frame):
         self.inputs["Params"].grid(row=3, sticky='n')
 
         # adding the save selected button
-        export_button = ttk.Button(save_box, text="Save selected data", command=self.export_data)
+        export_button = ttk.Button(save_box, text="Save Selected Data", command=self.export_data)
         export_button.grid(row=4, column=0, sticky="sew")
 
         save_box.grid(row=row, column=column, rowspan=rowspan, columnspan=colspan, sticky="nsew")
@@ -688,6 +691,10 @@ class FileUploadForm(tk.Frame):
             self.update()
             if filename != '':
                 data = self.data_container.get("SW")
+
+                data['dS'] = self.data_container.get("SW Err").loc[:, "dS"]
+                data['dW'] = self.data_container.get("SW Err").loc[:, "dW"]
+
                 # update the keys to reflect the user made changes
                 data['sample'] = [val.get() for val in self.filename_labels.values()]
                 data.set_index('sample', inplace=True)
@@ -702,6 +709,10 @@ class FileUploadForm(tk.Frame):
             self.update()
             if filename != '':
                 data = self.data_container.get("SW Ref")
+
+                data['dS'] = self.data_container.get("SW Err").loc[:, "dS"]
+                data['dW'] = self.data_container.get("SW Err").loc[:, "dW"]
+
                 # update the keys to reflect the user made changes
                 data['sample'] = [val.get() for val in self.filename_labels.values()]
                 data.set_index('sample', inplace=True)
@@ -729,23 +740,25 @@ class FileUploadForm(tk.Frame):
             data = self.data_container.get("raw data")
             df = self.data_container.from_dict_to_df(data)
             # temp solution - change headers to the short labels
-            # fixme it appears that I have lost a few rows vs before I added these few lines
+            # fixme it appears that I have lost a few rows vs. before I added these few lines
             # from here to the rename call.
             current_cols = df.columns
             d = {}
+            C_norms = self.data_container.get("c_norm")
             for col in current_cols[1:]:
                 d[col] = self.data_container.get('label', sample=col)
+
+                df[col] *= C_norms[col]
 
             df.rename(columns=d, inplace=True)
 
             df.to_csv(savefilename, index=False)
 
     def output_form(self):
-        """ accesses and combines the various parameters and checkboxes and organizes
-        them into one dataframe.
-         Right now this function only works when we have refreshed every tab and
-         clicked each button at least once (fold, shift, smoothing)
-         """
+        """ accesses and combines the various parameters and checkboxes and organizes them into one dataframe.
+            Right now this function only works properly when the user has visited every tab at least once and refreshed
+            since last toggle/Spinbox was changed
+        """
         # check reference file
         ref = self.data_container.get("reference")
 
@@ -755,21 +768,24 @@ class FileUploadForm(tk.Frame):
             samples = self.data_container.get("keys")
             for sample in samples:
                 # each sample will get one row that stores all its unique data
-                output = output.append(pd.DataFrame({'label': self.filename_labels[sample].get(),
+                output = pd.concat([output, pd.DataFrame({'Label': self.filename_labels[sample].get(),
                                                      # 'shift amount': self.data_container.get("shift amount", sample),
-                                                     'color': self.data_container.color[sample].get(),
-                                                     'marker': self.markerclass.markers[
+                                                     'Color': self.data_container.color[sample].get(),
+                                                     'Marker': self.markerclass.markers[
                                                          self.data_container.marker[sample].get()],
-                                                     'S': self.data_container.get("sw", sample)[0],
-                                                     'W': self.data_container.get("sw", sample)[1],
-                                                     'S Ref': self.data_container.get("sw ref", sample)[0],
-                                                     'W Ref': self.data_container.get("sw ref", sample)[1],
-                                                     }, index=[sample]))
+                                                     'S Parameter': self.data_container.get("sw", sample)[0],
+                                                     'W Parameter': self.data_container.get("sw", sample)[1],
+                                                     'Ref. S Parameter': self.data_container.get("sw ref", sample)[0],
+                                                     'Ref. W Parameter': self.data_container.get("sw ref", sample)[1],
+                                                     'Unc. S Parameter': self.data_container.get("sw err", sample)[0],
+                                                     'Unc. W Parameter': self.data_container.get("sw err", sample)[1],
+                                                     }, index=[sample])])
 
             # add all the shared data (values will repeat for each row)
-            output["Shift"] = self.data_container.get("is shifted")
-            output["Folding"] = self.data_container.get("is folded")
+            output["Shifted"] = self.data_container.get("is shifted")
+            output["Folded"] = self.data_container.get("is folded")
             output["Smoothing Window Size"] = self.data_container.get("smoothing amount")
+            output["Gaussian Smoothing"] = bool(self.data_container.get("gaussian smoothing"))
             ref_filepath = self.data_container.get("reference")  # we use the user label here.
             output["Reference Sample"] = self.data_container.get("label", sample=ref_filepath)
 
@@ -781,12 +797,12 @@ class FileUploadForm(tk.Frame):
             return output
 
     def delete_files(self):
-        keys = list(self.delete_tracker.keys())
+        keys = list(self.selection_tracker.keys())
         for key in keys:
 
-            if self.delete_tracker[key].get() and key != "Ready to load some data!":
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":
                 self.data_container.remove(key)
-                self.delete_tracker.pop(key)
+                self.selection_tracker.pop(key)
                 self.filename_labels.pop(key)
                 self.colors.pop(key)
                 self.hidden.pop(key)

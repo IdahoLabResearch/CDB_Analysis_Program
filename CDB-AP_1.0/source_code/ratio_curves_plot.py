@@ -1,10 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
-from . import PlotModule as p
+from . import plot_module as p
 
 
-class RatioCurvePlot(p.PlotWindow, tk.Frame):
+class RatioCurvesPlot(p.PlotWindow, tk.Frame):
 
     def __init__(self, name, data_container, *args, **kwargs):
         super().__init__(name, data_container, *args, **kwargs)
@@ -51,14 +51,13 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
             # to pop up multiple times each click
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
-                print("VALUE ERROR")  # / todo deleted
                 tk.messagebox.showerror("Error", "Please load data first")
 
         # store the parameters that were used for this instance.
-        # the only data this affects is the ratio curves so we only need to save it here
         self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
         self.data_container.check_boxes["shift"] = self.data_container.inputs["ShiftingState"].get()
         self.data_container.check_boxes["smoothing_window_size"] = self.data_container.inputs["Smoothing"].get()
+        self.data_container.check_boxes["gaussian_smoothing"] = self.data_container.inputs["GaussianSmoothingState"].get()
 
     @staticmethod
     def make_format(current, other):
@@ -127,7 +126,7 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
             new_vals = x * 3.92 / 7.28
             return ["{:.3f}".format(x) for x in new_vals]
 
-        self.ax2.set_xlabel("momentum (a.u.)")
+        self.ax2.set_xlabel("Momentum (a.u.)")
         self.ax2.set_xlim(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()))
         # set the tick locations
         new_ticks = np.linspace(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()), 5)
@@ -137,7 +136,7 @@ class RatioCurvePlot(p.PlotWindow, tk.Frame):
 
         self.ax.set_ylim(float(self.inputs["ymin"].get()), float(self.inputs["ymax"].get()))
         self.ax.set_xlim(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()))
-        self.ax.set_xlabel("Energy", fontsize=p.LABEL_FONT_SIZE)
+        self.ax.set_xlabel("Energy (keV)", fontsize=p.LABEL_FONT_SIZE)
         self.ax.set_ylabel("Counts", fontsize=p.LABEL_FONT_SIZE)
         self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size': p.LEGEND_FONT_SIZE})
         self.canvas.draw()

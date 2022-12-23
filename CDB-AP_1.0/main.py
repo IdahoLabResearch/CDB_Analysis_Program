@@ -1,4 +1,4 @@
-from src.application import Application
+from source_code.application import Application
 
 app = Application()
 
