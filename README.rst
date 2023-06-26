@@ -36,6 +36,7 @@ Installation
 * Note:
    * Your system may require the following code instead: python3 main.py
    * These instructions assume you already have Python and the required Python packages installed.
+   * An executable that will install the application is available upon request (no python required)
 
 Python Interpreter: 3.8, 3.9, or 3.10
 
