@@ -66,6 +66,7 @@ class FileUploadForm(tk.Frame):
         process_TechnoAP_button = ttk.Button(self, text="Process TechnoAP File", command=self.process_TechnoAP)
         load_button = ttk.Button(self, text="Load Preprocessed Data", command=self.open_file)
         select_all = ttk.Button(self, text="Select All", command=self.select_all)
+        subtract_button = ttk.Button(self, text="Subtract Selected Data Sets", command=self.subtract_files)  # . added
         delete_button = ttk.Button(self, text="Delete Selected Data Sets", command=self.delete_files)
 
         # reset the labels in case the user makes a mistake
@@ -89,7 +90,86 @@ class FileUploadForm(tk.Frame):
         # bottom row
         select_all.grid(row=9, column=1, sticky="nsew")
         reset_labels.grid(row=9, column=2, sticky="nsew")
-        delete_button.grid(row=9, column=3, sticky="nsew")
+        subtract_button.grid(row=9, column=3, sticky="nsew")  # . Added
+        delete_button.grid(row=9, column=4, sticky="nsew")
+
+    def add_zeros_TechnoAP(self, num_channels, TechnoAP_data):
+        # Define variables
+        mpa_list = []
+
+        # This next portion formats the TechnoAP CDB data into something like the MPA files this program first
+        #   analyzed, allowing the TechnoAP data to be processed like that data.
+        # TechnoAP's data is formatted such that we are given the row (channel from CH2) and column
+        #   (channel from CH1) of each CH2/CH1 channel combination that has a count, along with the count at that
+        #   combination. This section of the program reformats that into a one-column data file composed of only
+        #   counts (including 0s). This column of data is formatted such that the first 8192 rows of data correspond
+        #   to CH2/CH1 combinations "CH2 channel 0" with "CH1 channels 0-8191". Then the next 8192 rows of data
+        #   corresponds to "CH2 channel 1" and "CH1 channels 0-8191". This continues until the last 8192 rows of
+        #   data corresponds to "CH2 channel 8191" and "CH1 channels 0-8191".
+        # The program accomplishes this through a series of times when 0s are added:
+        #   1) Every column (set of 8192 data cells) prior to the first column (CH1 channel) that has a count in it
+        #      needs to be filled with zeros
+        #   2) Every row in that column needs to be filled with zeros until the first row (CH2 channel) that has a
+        #      count in it is reached
+        #   3) That count needs to be added
+        #   4) The data file needs to be checked to see if it has more data in it. If not, fill the rest of the
+        #      current column (set of 8192 data cells) wth 0s then fill every remaining column with 0s until there
+        #      are 8192 columns
+        #   5) The next data row needs to be checked. If the CH1 channel # is the same as the last CH1 channel #,
+        #      then 0s need to be added until the next CH2 channel # is reached. Then repeat 3-5 until a new CH1
+        #      channel number is reached.
+        #   6) Repeat 2-6 until out of data. Note, in the program, step 2 and the "then" part of step 5 are combined
+        #      into one step by use of the variable "start0s"
+
+        # Add zeros until we reach the first channel that has a count.
+        # Note: In TechnoAP CDB Data, there is a channel 0 and channel 8191, for 8192 channels in total.
+        for i in range(TechnoAP_data.at[0, 'CH1(ch)']):  # Step thru each column until the 1st channel with a count
+            # Add zeros for every row in that column
+            for j in range(num_channels):
+                mpa_list.append(0)
+
+        DFRow = 0  # Which row in the dataframe/data is being examined
+        start0s = 0  # Which row should we start adding 0s at for that column
+        while DFRow < len(TechnoAP_data):  # The exit condition here doesn't end up getting used
+            # Check the next row of the grid row for its channel, then, starting at the channel of the last row
+            # that had a count (or zero if the last row that had a count was in an earlier column), add enough 0s
+            # to get to that row
+            for j in range(start0s, TechnoAP_data.at[DFRow, 'CH2(ch)']):
+                mpa_list.append(0)
+
+            mpa_list.append(TechnoAP_data.at[DFRow, 'Counts'])  # Append the latest count to the list
+            start0s = TechnoAP_data.at[DFRow, 'CH2(ch)'] + 1  # Plus one to avoid getting an extra zero
+            DFRow += 1  # Advance to the next row in the data
+
+            # If all the data has been examined...
+            if DFRow >= len(TechnoAP_data):
+                # Finish the zeros in the column
+                for j in range(start0s, num_channels):
+                    mpa_list.append(0)
+                # Fill up all the remaining columns with zeros
+                for i in range(TechnoAP_data.at[DFRow - 1, 'CH1(ch)'] + 1, num_channels):
+                    for j in range(num_channels):
+                        mpa_list.append(0)
+                break  # Exit the while loop
+
+            # If there is still more data to read...
+            # (Some variables to make the next few lines easier to understand)
+            current_ch = TechnoAP_data.at[DFRow, 'CH1(ch)']
+            last_ch = TechnoAP_data.at[DFRow - 1, 'CH1(ch)']
+            if current_ch != last_ch:  # Compare last CH1 channel to new CH1 channel
+                # If different, finish the zeroes in the column and reset the start row to 0
+                for j in range(start0s, num_channels):
+                    mpa_list.append(0)
+                start0s = 0
+                # Check for missing channels between the new CH1 channel and last CH1 channel
+                if current_ch != last_ch + 1:
+                    # If there are CH1 channels that didn't have counts, fill the corresponding columns with 0s
+                    for i in range(last_ch + 1, current_ch):
+                        for j in range(num_channels):
+                            mpa_list.append(0)
+                # If the last CH1 channel and the new CH1 channel are the same, continue with the new start0s
+                # defined earlier
+        return mpa_list
 
     def process_TechnoAP(self):
         """ load a TechnoAP CDB file, convert it to be formatted like an MPA file, then process it"""
@@ -113,8 +193,8 @@ class FileUploadForm(tk.Frame):
 
             # Define variables
             num_channels = 8192
-            mpa_list = []
-
+            mpa_list = self.add_zeros_TechnoAP(num_channels, TechnoAP_data)#[]  # . Comment and clean up this area
+            """
             # This next portion formats the TechnoAP CDB data into something like the MPA files this program first
             #   analyzed, allowing the TechnoAP data to be processed like that data.
             # TechnoAP's data is formatted such that we are given the row (channel from CH2) and column
@@ -186,7 +266,7 @@ class FileUploadForm(tk.Frame):
                             for j in range(num_channels):
                                 mpa_list.append(0)
                     # If the last CH1 channel and the new CH1 channel are the same, continue with the new start0s
-                    # defined earlier
+                    # defined earlier"""
 
             loader.update_progress_bar(25)
 
@@ -313,6 +393,22 @@ class FileUploadForm(tk.Frame):
                 # save the short file name in filename_labels in the data_container
                 self.data_container.set(name="update key", key=filename, new_key=filename2)
                 self.display_files()
+
+    def subtract_counts(self):  # . IN PROGRESS
+        data = self.data_container.get("raw data")
+        df = self.data_container.from_dict_to_df(data)
+        # temp solution - change headers to the short labels
+        # fixme it appears that I have lost a few rows vs. before I added these few lines
+        # from here to the rename call.
+        current_cols = df.columns
+        d = {}
+        C_norms = self.data_container.get("c_norm")
+        for col in current_cols[1:]:
+            d[col] = self.data_container.get('label', sample=col)
+
+            df[col] *= C_norms[col]
+
+        df.rename(columns=d, inplace=True)
 
     def process_FComTec(self):
         """ load FAST ComTec's MPA file and extract the 511 CDB peak """
@@ -795,6 +891,74 @@ class FileUploadForm(tk.Frame):
                 output[key] = parameters[key]
 
             return output
+
+    def subtract_files(self):  # . Added this function
+        keys = list(self.selection_tracker.keys())
+        self.selected_keys = []
+        self.chosen_file = tk.StringVar() # . better to define self. elsewhere
+        for key in keys:
+            print("self.selection_tracker[key].get()", self.selection_tracker[key].get())
+            if self.selection_tracker[key].get() and key != "Ready to load some data!":
+                print(key)
+                self.selected_keys.append(key)
+        print("Selected keys:\n", self.selected_keys)
+
+        if not self.selected_keys:
+            print("No files selected")
+            return
+
+        self.sub_win = tk.Toplevel() # . better to define self. elsewhere
+        self.sub_win.wm_title("Subtraction Window")
+        label = tk.Label(self.sub_win, text="Which file should be subtracted from the rest?")
+        label.grid(row=0, column=0)
+        button = ttk.Button(self.sub_win, text="Confirm", command=self.perform_subtraction)#self.sub_win.destroy)
+        button.grid(row=1, column=0)
+        self.subDropMenu = ttk.OptionMenu(self.sub_win, self.chosen_file,
+                                          self.selected_keys[0], *self.selected_keys)# ., "Please load some data")
+        self.subDropMenu.grid(row=2, column=0)
+
+        self.display_files()
+
+    def perform_subtraction(self):  # . Created
+
+        print(self.chosen_file.get())
+
+        C_norm_list = self.data_container.get("c_norm")
+        print(C_norm_list)
+
+        norm_data = self.data_container.get("raw data")
+
+        minuend = {}
+        x = norm_data[self.chosen_file.get()][:, 0]
+        difference = {}
+        subtrahend = norm_data[self.chosen_file.get()][:, 1] * C_norm_list[self.chosen_file.get()]
+
+        for key in self.selected_keys:
+            print("_______________________")
+            print("norm_data[key]\n", norm_data[key])
+            print("C_norm_list[key]\n", C_norm_list[key])
+            if key != self.chosen_file.get():
+                minuend[key] = norm_data[key][:, 1] * C_norm_list[key]
+                print("data[key]\n", minuend[key])
+
+                difference[key] = minuend[key] - subtrahend
+
+            for key in difference.keys():
+                C_norm = np.trapz(difference[key], x[:])
+                difference[key] = difference[key] / C_norm
+                self.data_container.set(name="c_norm", key=key+" minus "+self.chosen_file.get(), c_norm=C_norm)
+                new_data = np.stack((x, difference[key]),axis=1)
+
+                self.data_container.set(name="raw data", key=key+" minus "+self.chosen_file.get(), data=new_data)
+                print("Here after setting data container")
+
+        self.sub_win.destroy()
+        print(difference)
+        # don't forget to display!
+        self.display_files()
+
+
+
 
     def delete_files(self):
         keys = list(self.selection_tracker.keys())
