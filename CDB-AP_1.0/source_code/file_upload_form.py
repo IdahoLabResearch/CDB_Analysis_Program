@@ -175,6 +175,9 @@ class FileUploadForm(tk.Frame):
         """ load a TechnoAP CDB file, convert it to be formatted like an MPA file, then process it"""
         # file_path = askopenfilename()
         file_path_tuple = askopenfilenames()  # . Made a tuple
+        # Check how the user wants to handle bulk loading  # . added
+        same_e_cal = False  # . added
+        default_file_saving = False  # . added
         if len(file_path_tuple) > 1:  # . Added
             same_e_cal = tk.messagebox.askyesno("Energy Calibration", "You have selected to process multiple files at once. Should all files use the same energy calibration?")
             if same_e_cal:  # . Added
@@ -194,6 +197,10 @@ class FileUploadForm(tk.Frame):
                 while det1cal[1] is None:
                     det1cal[1] = tk.simpledialog.askfloat("Input", "'b' for CH2:", minvalue=-100, maxvalue=100,
                                                           initialvalue=det2cal[1])
+            default_file_saving = tk.messagebox.askyesno("Default Filename",
+                "You have selected to process multiple files at once. " +
+                "Should all files use the default filename and save location when saving?")
+
         self.update()  # to clear the dialog box
         for file_path in file_path_tuple:  # . Added
             if file_path != "":
@@ -401,8 +408,12 @@ class FileUploadForm(tk.Frame):
                 filepath = os.path.split(file_path)[0]
                 print("filepath", filepath)
                 # see if the user wants to change the name
-                filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv",
-                                             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])  # . added filetypes
+                if not default_file_saving:  # . Added the else section. Used to just always ask.
+                    filename = asksaveasfilename(initialdir=filepath, initialfile=filename2, defaultextension="*.csv",
+                                                 filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])  # . added filetypes
+                else:
+                    filename = os.path.join(filepath, filename2 + ".csv")  # . make sure to test on mac
+
                 loader.destroy()
                 self.update()
                 if filename != '':
@@ -525,6 +536,9 @@ class FileUploadForm(tk.Frame):
                         dict_data = self.data_container.from_df_to_dict(new_df)
                         # save the data as a dictionary for easy preservation
                         self.data_container.set(name="raw data", key=filename, data=dict_data[filename])
+                        # save the short file name in filename_labels in the data_container
+                        filename2 = os.path.split(filename)[1].removesuffix(".csv")
+                        self.data_container.set(name="update key", key=filename, new_key=filename2)
                         # don't forget to display!
                         self.display_files()
 

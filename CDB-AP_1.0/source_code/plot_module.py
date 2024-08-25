@@ -8,10 +8,10 @@ import tkinter as tk
 from tkinter import ttk
 """ This tab contains the basic outline for the plot found in most tabs.
 Inherited from Ratio Curves, S and W parameter form, S vs. W plot, and S vs. W (Ref.) plot."""
-LABEL_FONT_SIZE = 20
-TICK_NUMBER_SIZE = 13
+LABEL_FONT_SIZE = 16
+TICK_NUMBER_SIZE = 12
 LINE_WIDTH = 2
-LEGEND_FONT_SIZE = 14
+LEGEND_FONT_SIZE = 13
 
 
 class PlotWindow(tk.Frame):

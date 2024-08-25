@@ -113,7 +113,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
         if self.fold_value_changed:
             names = ('ymin', 'ymax', 'xmin', 'xmax')
             if self.data_container.inputs["FoldingState"].get():
-                values = (0, 1.4, -0.1, 50)
+                values = (0, 2, -0.1, 50)  # . Changed from 1.4 to 2
             else:
                 values = (0, 2, 460, 560)
             for n in range(4):
@@ -127,6 +127,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
             return ["{:.3f}".format(x) for x in new_vals]
 
         self.ax2.set_xlabel("Momentum (a.u.)")
+        self.ax2.xaxis.set_label_coords(0.5, 1.115)  # . Added this
         self.ax2.set_xlim(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()))
         # set the tick locations
         new_ticks = np.linspace(float(self.inputs["xmin"].get()), float(self.inputs["xmax"].get()), 5)
