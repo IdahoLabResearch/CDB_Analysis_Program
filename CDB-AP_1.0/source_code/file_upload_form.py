@@ -359,7 +359,6 @@ class FileUploadForm(tk.Frame):
                 loader.add_progress_bar()
                 loader.update_progress_bar(75)
 
-                from scipy.interpolate import interp2d
                 # Copied the next bit from reduce_data() in math_module.py
 
                 # create a 2d grid for plotting
@@ -390,8 +389,18 @@ class FileUploadForm(tk.Frame):
                 interp_step = 0.15
                 x2i, y2i = np.meshgrid(np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step),
                                        np.arange(max(x2[0][0], y2[0][0]), min(x2[-1][-1], y2[-1][-1]), interp_step))
-                f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
-                data2i = f(x2i[0], y2i[:, 0])
+                # Replacing interp2d:
+                # (is meshgrid even needed??)
+                xnew = x2i[0]
+                ynew = y2i[:,0]
+                from scipy.interpolate import RectBivariateSpline
+                r = RectBivariateSpline(x2[0], y2[:, 0], data2D.T, kx=1, ky=1)
+                rt = lambda xnew, ynew: r(xnew, ynew).T
+                data2i = rt(xnew, ynew)
+                # Old code that used interp2d:
+                # from scipy.interpolate import interp2d
+                # f = interp2d(x2[0], y2[:, 0], data2D)  # defaults to linear interpolation
+                # data2i = f(x2i[0], y2i[:, 0])
 
                 # Copied the next bit from process_FComTec()
 
