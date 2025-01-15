@@ -782,28 +782,31 @@ class FileUploadForm(tk.Frame):
             # account for Windows
             width = 25
 
+        self.inputs["SCurveState"] = tk.IntVar()
+        self.inputs["SCurves"] = ttk.Checkbutton(save_box, text="S Curves",
+                                                     variable=self.inputs["SCurveState"], width=width)
+        self.inputs["SCurves"].grid(row=0, sticky='n') # ttk doesn't have the anchor parameter, but it is unneeded.
 
         self.inputs["RatioCurveState"] = tk.IntVar()
         self.inputs["RatioCurves"] = ttk.Checkbutton(save_box, text="Ratio Curves",
-                                                     variable=self.inputs["RatioCurveState"],
-                                                     width=width)
-        # ttk doesn't have the anchor parameter, but it is unneeded.
-        self.inputs["RatioCurves"].grid(row=0, sticky='n')
+                                                     variable=self.inputs["RatioCurveState"], width=width)
+        self.inputs["RatioCurves"].grid(row=1, sticky='n')
+
 
         self.inputs["SWState"] = tk.IntVar()
-        self.inputs["SW"] = ttk.Checkbutton(save_box, text="S and W", variable=self.inputs["SWState"],
-                                            width=width)
-        self.inputs["SW"].grid(row=1, sticky='n')
+        self.inputs["SW"] = ttk.Checkbutton(save_box, text="S & W Parameters",
+                                            variable=self.inputs["SWState"], width=width)
+        self.inputs["SW"].grid(row=2, sticky='n')
 
         self.inputs["SWRefState"] = tk.IntVar()
-        self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S and W with Reference",
+        self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S & W with Reference",
                                                variable=self.inputs["SWRefState"], width=width)
-        self.inputs["SvsWRefPlot"].grid(row=2, sticky='n')
+        self.inputs["SvsWRefPlot"].grid(row=3, sticky='n')
 
         self.inputs["ParamState"] = tk.IntVar()
-        self.inputs["Params"] = ttk.Checkbutton(save_box, text="Parameters", variable=self.inputs["ParamState"],
-                                                width=width)
-        self.inputs["Params"].grid(row=3, sticky='n')
+        self.inputs["Params"] = ttk.Checkbutton(save_box, text="Analysis Parameters",
+                                                variable=self.inputs["ParamState"], width=width)
+        self.inputs["Params"].grid(row=4, sticky='n')
 
         # adding the save selected button
         export_button = ttk.Button(save_box, text="Save Selected Data", command=self.export_data)
@@ -816,6 +819,24 @@ class FileUploadForm(tk.Frame):
 
         # for key in ("RatioCurveState", "SWState", "SWRefState", "ParamState"):
         #     state = self.inputs[key].get()
+
+        if self.inputs["SCurveState"].get():  # . Added this whole if/then based on the ratio curves one
+            filename = asksaveasfilename(initialdir=os.path.dirname(__file__), initialfile="SCurves", defaultextension="*.csv",
+                                             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])  # . added filetypes
+            self.update()
+            if filename != '':
+                data = self.data_container.get("S curves")
+                # update the column names to reflect the user made changes
+                old_columns = data.columns[1:]  # don't select the x column
+                new_columns = [val.get() for val in self.filename_labels.values()]
+                for n in range(len(new_columns)):
+                    # this could be more efficient, but for now this works to change the column names
+                    data = data.rename(columns={old_columns[n]: new_columns[n]})
+
+                try:
+                    data.to_csv(filename, index=False)
+                except AttributeError:
+                    tk.messagebox.showerror(title="Missing Data", message="Please load some data before saving.")
 
         if self.inputs["RatioCurveState"].get():
             filename = asksaveasfilename(initialdir=os.path.dirname(__file__), initialfile="RatioCurves", defaultextension="*.csv",

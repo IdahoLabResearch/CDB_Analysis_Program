@@ -39,7 +39,7 @@ class SvsWPlot(p.PlotWindow, tk.Frame):
 
     def refresh(self, *args):
         try:
-            self.data = self.data_container.get("sw param data")
+            self.data = self.data_container.get("s curves")  # . Changed the keyword elsewhere then here
             super().refresh()  # just a call to self.plot
         except KeyError:
             # Check if this is the first time that this warning appears to patch the problem that the program

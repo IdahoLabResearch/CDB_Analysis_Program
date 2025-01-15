@@ -23,7 +23,7 @@ class SvsWRefPlot(s.SvsWPlot, tk.Frame):
         try:
             self.update_dropdown()
             # update the ratio curve data. The ratio itself is calculated later
-            self.data = self.data_container.get("sw param data")
+            self.data = self.data_container.get("s curves") # . Changed the keyword elsewhere then here
             # set the reference we selected
             self.data_container.set("reference",
                                     key=self.data_container.get('key', sample=self.data_container.reference.get()))

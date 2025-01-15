@@ -23,7 +23,7 @@ class DoTheMathStoreTheData:
         self.C_norms = {}  # Store the normalizing constants
         self.filename_labels = {}  # placeholder for the short labels for each data set
         self.ratio_curves = ''  # current form of the ratio curves will be stored here as a pandas dataframe
-        self.sw_param_data = pd.DataFrame()
+        self.S_curve_data = pd.DataFrame()
         self.SW = pd.DataFrame()
         self.SW_err = pd.DataFrame()
         self.SWRef = pd.DataFrame()
@@ -63,8 +63,9 @@ class DoTheMathStoreTheData:
         if name == "raw data":
             return self.data
 
-        elif name == "sw param data":
-            return self.sw_param_data
+        elif name == "s curves":  # . Used to be sw param data
+            # This is the data displayed on the S and W Parameters tab
+            return self.S_curve_data
 
         elif name == "key":
             if sample in self.filename_labels.values():
@@ -208,11 +209,11 @@ class DoTheMathStoreTheData:
             else:
                 self.check_boxes["smoothing_window_size"] = value
 
-        elif name == "placeholder data":
-            # this is where we store the data created in the sw params tab
+        elif name == "s curves":  # . Used to be called "placeholder data"
+            # this is where we store the count vs keV data created in the S and W Parameters tab
             # TODO update the efficiency
             # df = self.from_dict_to_df(data)  # not ready to use a dataframe yet
-            self.sw_param_data = data
+            self.S_curve_data = data  # . Used to be called "sw_param_data"
 
         elif name == "reference":
             self.reference.set(key)
@@ -235,6 +236,9 @@ class DoTheMathStoreTheData:
             if key is None or c_norm is None:
                 tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
             self.C_norms[key] = c_norm
+
+        else:
+            tk.messagebox.showerror('Error', "No variable by the name {}.".format(name))  # . Added this else
 
     def remove(self, key):
         """ Needed to remove extra data at the request of the user. """

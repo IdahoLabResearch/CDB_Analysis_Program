@@ -129,8 +129,8 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
             self.ax.plot(df['x'], df[key], label=self.data_container.get('label', key), linewidth=p.LINE_WIDTH,
                          color=self.data_container.color[key].get())
 
-        # store the placeholder data
-        self.data_container.set("placeholder data", data=df)
+        # store the S curve data # . used to be called "placeholder data"
+        self.data_container.set("s curves", data=df)
 
         # draw the lines for the sw parameters here
         [self.ax.vlines(val, self.ymin, self.ymax, linewidth=p.LINE_WIDTH) for val in self.params.values()]
