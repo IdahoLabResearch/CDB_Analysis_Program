@@ -775,42 +775,47 @@ class FileUploadForm(tk.Frame):
     def save_options(self, row, column, rowspan=1, colspan=1):
         # save option box
         save_box = tk.LabelFrame(self, text="Analyzed data to save", background='gray93')
-        save_box.rowconfigure(4, weight=1)  # need to configure this row with this weight to get it show on the bottom
+        save_box.rowconfigure(6, weight=1)  # need to configure this row with this weight to get it show on the bottom # . Changed from 4 to 6after adding two new checkboxes
         if platform.system() == 'Darwin':  # macOS
             width = 20
         else:
             # account for Windows
             width = 25
 
-        self.inputs["SCurveState"] = tk.IntVar()
+        self.inputs["SCurveState"] = tk.IntVar() # . Added this button
         self.inputs["SCurves"] = ttk.Checkbutton(save_box, text="S Curves",
                                                      variable=self.inputs["SCurveState"], width=width)
         self.inputs["SCurves"].grid(row=0, sticky='n') # ttk doesn't have the anchor parameter, but it is unneeded.
 
+        self.inputs["NSCurveState"] = tk.IntVar() # . Added this button
+        self.inputs["NSCurves"] = ttk.Checkbutton(save_box, text="Normalized S Curves",
+                                                     variable=self.inputs["NSCurveState"], width=width)
+        self.inputs["NSCurves"].grid(row=1, sticky='n') # ttk doesn't have the anchor parameter, but it is unneeded.
+
         self.inputs["RatioCurveState"] = tk.IntVar()
         self.inputs["RatioCurves"] = ttk.Checkbutton(save_box, text="Ratio Curves",
                                                      variable=self.inputs["RatioCurveState"], width=width)
-        self.inputs["RatioCurves"].grid(row=1, sticky='n')
+        self.inputs["RatioCurves"].grid(row=2, sticky='n')
 
 
         self.inputs["SWState"] = tk.IntVar()
         self.inputs["SW"] = ttk.Checkbutton(save_box, text="S & W Parameters",
                                             variable=self.inputs["SWState"], width=width)
-        self.inputs["SW"].grid(row=2, sticky='n')
+        self.inputs["SW"].grid(row=3, sticky='n')
 
         self.inputs["SWRefState"] = tk.IntVar()
         self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S & W with Reference",
                                                variable=self.inputs["SWRefState"], width=width)
-        self.inputs["SvsWRefPlot"].grid(row=3, sticky='n')
+        self.inputs["SvsWRefPlot"].grid(row=4, sticky='n')
 
         self.inputs["ParamState"] = tk.IntVar()
         self.inputs["Params"] = ttk.Checkbutton(save_box, text="Analysis Parameters",
                                                 variable=self.inputs["ParamState"], width=width)
-        self.inputs["Params"].grid(row=4, sticky='n')
+        self.inputs["Params"].grid(row=5, sticky='n')
 
         # adding the save selected button
         export_button = ttk.Button(save_box, text="Save Selected Data", command=self.export_data)
-        export_button.grid(row=4, column=0, sticky="sew")
+        export_button.grid(row=6, column=0, sticky="sew")
 
         save_box.grid(row=row, column=column, rowspan=rowspan, columnspan=colspan, sticky="nsew")
 
@@ -829,6 +834,31 @@ class FileUploadForm(tk.Frame):
                 # update the column names to reflect the user made changes
                 old_columns = data.columns[1:]  # don't select the x column
                 new_columns = [val.get() for val in self.filename_labels.values()]
+                C_norms = self.data_container.get("c_norm")  # . Added this line
+
+                for n in range(len(new_columns)):
+                    # this could be more efficient, but for now this works to change the column names
+                    data = data.rename(columns={old_columns[n]: new_columns[n]})
+
+                    # . I think this has to be after the column renaming to avoid accidentally changing the values stored in self
+                    print("\n\n\nOld: ", old_columns[n], "\nNew:", new_columns[n])
+                    print("Before: ", data[new_columns[n]])
+                    data[new_columns[n]] *= C_norms[old_columns[n]]  # . Added this line
+                    print("After: ", data[new_columns[n]])
+                try:
+                    data.to_csv(filename, index=False)
+                except AttributeError:
+                    tk.messagebox.showerror(title="Missing Data", message="Please load some data before saving.")
+
+        if self.inputs["NSCurveState"].get():  # . Added this whole if/then based on the ratio curves one
+            filename = asksaveasfilename(initialdir=os.path.dirname(__file__), initialfile="Normalized_SCurves", defaultextension="*.csv",
+                                             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])  # . added filetypes
+            self.update()
+            if filename != '':
+                data = self.data_container.get("S curves")
+                # update the column names to reflect the user made changes
+                old_columns = data.columns[1:]  # don't select the x column
+                new_columns = [val.get() for val in self.filename_labels.values()]  # . Some of these variables, such as the column variables, can be consolidated rather than being repeated again and again
                 for n in range(len(new_columns)):
                     # this could be more efficient, but for now this works to change the column names
                     data = data.rename(columns={old_columns[n]: new_columns[n]})
