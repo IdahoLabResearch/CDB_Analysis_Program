@@ -23,7 +23,8 @@ class DoTheMathStoreTheData:
         self.C_norms = {}  # Store the normalizing constants
         self.filename_labels = {}  # placeholder for the short labels for each data set
         self.ratio_curves = ''  # current form of the ratio curves will be stored here as a pandas dataframe
-        self.S_curve_data = pd.DataFrame()
+        self.S_curve_data = pd.DataFrame()  # Store the analyzed S curves
+        self.S_curve_unc = pd.DataFrame() # Store the uncertainty of the S curves # .
         self.SW = pd.DataFrame()
         self.SW_err = pd.DataFrame()
         self.SWRef = pd.DataFrame()
@@ -39,6 +40,7 @@ class DoTheMathStoreTheData:
         # store the state of the smoothing parameter check buttons
         self.inputs = {"ReferenceLineState": tk.IntVar(),
                        "LogscaleState": tk.IntVar(),
+                       "ErrorBarsState": tk.IntVar(),
                        "GaussianSmoothingState": tk.IntVar(),
                        "FoldingState": tk.IntVar(),
                        "ShiftingState": tk.IntVar(),
@@ -66,6 +68,10 @@ class DoTheMathStoreTheData:
         elif name == "s curves":  # . Used to be sw param data
             # This is the data displayed on the S and W Parameters tab
             return self.S_curve_data
+
+        elif name == "s curve uncertainty":
+            # This is the uncertainty data displayed on the S and W Parameters tab
+            return self.S_curve_unc
 
         elif name == "key":
             if sample in self.filename_labels.values():
@@ -173,7 +179,7 @@ class DoTheMathStoreTheData:
         else:
             tk.messagebox.showerror('Error', "No variable by the name {}.".format(name))
 
-    def set(self, name, key=None, data=None, value=None, new_key=None, c_norm=None):
+    def set(self, name, key=None, data=None, value=None, new_key=None, c_norm=None, s_curve_unc=None):
         name = name.lower()
         if name == "raw data":
             # TODO check the data type to ensure compatibility
@@ -214,6 +220,11 @@ class DoTheMathStoreTheData:
             # TODO update the efficiency
             # df = self.from_dict_to_df(data)  # not ready to use a dataframe yet
             self.S_curve_data = data  # . Used to be called "sw_param_data"
+
+        elif name == "s curve uncertainty":  # . Added this
+            if s_curve_unc is None:
+                tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
+            self.S_curve_unc = s_curve_unc
 
         elif name == "reference":
             self.reference.set(key)

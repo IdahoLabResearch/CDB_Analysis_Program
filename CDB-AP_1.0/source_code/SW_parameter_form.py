@@ -1,3 +1,4 @@
+import numpy as np
 import tkinter as tk
 from tkinter import ttk
 from . import plot_module as p
@@ -45,6 +46,9 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         logscale_checkbox = ttk.Checkbutton(parent, text="Linear Scale",
                                             variable=self.data_container.inputs["LogscaleState"])
         logscale_checkbox.grid(row=0, column=5, sticky='nsew')
+        errorbar_checkbox = ttk.Checkbutton(parent, text="Error Bars (Statistical)",
+                                            variable=self.data_container.inputs["ErrorBarsState"])
+        errorbar_checkbox.grid(row=0, column=6, sticky='nsew')
 
     def create_sw_parameter_inputs(self):
         subframe2 = tk.LabelFrame(self, text="S and W parameter regions of interest (ROI) limits (keV)",
@@ -106,12 +110,13 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
 
         # step one: convert to dataframe (will be done sooner later)
         df = self.data_container.from_dict_to_df(self.data)
+        df_unc = df.copy()  # . Dataframe for Uncertainty
+        C_norms = self.data_container.get("c_norm")  # . For calculating uncertainty
 
         for key in keys:
             if self.data_container.inputs["GaussianSmoothingState"].get():
                 df[key] = df[key].rolling(window=int(self.data_container.inputs["Smoothing"].get()), center=True,
                                           min_periods=1, win_type='gaussian').mean(std=1)
-
             else:
                 df[key] = df[key].rolling(window=int(self.data_container.inputs["Smoothing"].get()), center=True,
                                           min_periods=1).mean()
@@ -121,16 +126,24 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
 
         # make the plot here
         for key in keys:
-            # allow for default colors as well as user defined
-            # if self.data_container.color[key].get() == "Choose Color":
-            #     color = None
-            # else:
-            #     color = self.data_container.color[key].get()
-            self.ax.plot(df['x'], df[key], label=self.data_container.get('label', key), linewidth=p.LINE_WIDTH,
-                         color=self.data_container.color[key].get())
+            # . Calculate the most up-to-date uncertainty
+            df_unc[key] = (df[key] / C_norms[key]).map(np.sqrt)  # Unc = Sqrt(N)/C = (N/C^2)^(1/2) = ((df=N/C)/C).sqrt
 
-        # store the S curve data # . used to be called "placeholder data"
+            if self.data_container.inputs["ErrorBarsState"].get(): # . Added if statement (else was already there)
+                self.ax.errorbar(df['x'], df[key], df_unc[key], label=self.data_container.get('label', key), linewidth=p.LINE_WIDTH,
+                             color=self.data_container.color[key].get())
+            else:
+                # allow for default colors as well as user defined
+                # if self.data_container.color[key].get() == "Choose Color":
+                #     color = None
+                # else:
+                #     color = self.data_container.color[key].get()
+                self.ax.plot(df['x'], df[key], label=self.data_container.get('label', key), linewidth=p.LINE_WIDTH,
+                             color=self.data_container.color[key].get())
+
+        # store the S curve data # . and S curve uncertainty data # . used to be called "placeholder data"
         self.data_container.set("s curves", data=df)
+        self.data_container.set("s curve uncertainty", s_curve_unc=df_unc)
 
         # draw the lines for the sw parameters here
         [self.ax.vlines(val, self.ymin, self.ymax, linewidth=p.LINE_WIDTH) for val in self.params.values()]
