@@ -559,10 +559,6 @@ class FileUploadForm(tk.Frame):
                         d = self.data_container.from_df_to_dict(new_df)
                         # save to data structure
                         for key in d:
-                            # . Added this to calculate the uncertainty
-                            # S_curve_unc = d[key].iloc[:, 1].map(np.sqrt)  # new_df[:, 1] ** (1 / 2)  # . Added this especially # . . . # . Untested
-                            # self.data_container.set(name="s_curve_unc", key=filename, s_curve_unc=S_curve_unc)  # . is this key good?
-                            # pd.DataFrame(combo_unc).to_csv("unc"+key, header=False, index=False)  # . delete
 
                             C_norm = np.trapz(d[key][:, 1], new_df['x'][:])
                             d[key][:, 1] = d[key][:, 1] / C_norm
@@ -780,7 +776,7 @@ class FileUploadForm(tk.Frame):
     def save_options(self, row, column, rowspan=1, colspan=1):
         # save option box
         save_box = tk.LabelFrame(self, text="Analyzed data to save", background='gray93')
-        save_box.rowconfigure(6, weight=1)  # need to configure this row with this weight to get it show on the bottom # . Changed from 4 to 6after adding two new checkboxes
+        save_box.rowconfigure(9, weight=1)  # need to configure this row with this weight to get it show on the bottom # . Changed from 4 to 6after adding two new checkboxes
         if platform.system() == 'Darwin':  # macOS
             width = 20
         else:
@@ -812,25 +808,29 @@ class FileUploadForm(tk.Frame):
                                                      variable=self.inputs["RatioCurveState"], width=width)
         self.inputs["RatioCurves"].grid(row=4, sticky='n')
 
+        self.inputs["RatioCurveUncState"] = tk.IntVar()
+        self.inputs["RatioCurveUnc"] = ttk.Checkbutton(save_box, text="Ratio Curve Uncertainty",
+                                                     variable=self.inputs["RatioCurveUncState"], width=width)
+        self.inputs["RatioCurveUnc"].grid(row=5, sticky='n')
 
         self.inputs["SWState"] = tk.IntVar()
         self.inputs["SW"] = ttk.Checkbutton(save_box, text="S & W Parameters",
                                             variable=self.inputs["SWState"], width=width)
-        self.inputs["SW"].grid(row=5, sticky='n')
+        self.inputs["SW"].grid(row=6, sticky='n')
 
         self.inputs["SWRefState"] = tk.IntVar()
         self.inputs["SvsWRefPlot"] = ttk.Checkbutton(save_box, text="S & W with Reference",
                                                variable=self.inputs["SWRefState"], width=width)
-        self.inputs["SvsWRefPlot"].grid(row=6, sticky='n')
+        self.inputs["SvsWRefPlot"].grid(row=7, sticky='n')
 
         self.inputs["ParamState"] = tk.IntVar()
         self.inputs["Params"] = ttk.Checkbutton(save_box, text="Analysis Parameters",
                                                 variable=self.inputs["ParamState"], width=width)
-        self.inputs["Params"].grid(row=7, sticky='n')
+        self.inputs["Params"].grid(row=8, sticky='n')
 
         # adding the save selected button
         export_button = ttk.Button(save_box, text="Save Selected Data", command=self.export_data)
-        export_button.grid(row=8, column=0, sticky="sew")
+        export_button.grid(row=9, column=0, sticky="sew")
 
         save_box.grid(row=row, column=column, rowspan=rowspan, columnspan=colspan, sticky="nsew")
 
@@ -926,6 +926,24 @@ class FileUploadForm(tk.Frame):
             self.update()
             if filename != '':
                 data = self.data_container.get("ratio curves")
+                # update the column names to reflect the user made changes
+                old_columns = data.columns[1:]  # don't select the x column
+                new_columns = [val.get() for val in self.filename_labels.values()]
+                for n in range(len(new_columns)):
+                    # this could be more efficient, but for now this works to change the column names
+                    data = data.rename(columns={old_columns[n]: new_columns[n]})
+
+                try:
+                    data.to_csv(filename, index=False)
+                except AttributeError:
+                    tk.messagebox.showerror(title="Missing Data", message="Please load some data before saving.")
+
+        if self.inputs["RatioCurveUncState"].get():
+            filename = asksaveasfilename(initialdir=os.path.dirname(__file__), initialfile="RatioCurveUnc", defaultextension="*.csv",
+                                             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])  # . added filetypes
+            self.update()
+            if filename != '':
+                data = self.data_container.get("ratio curve uncertainty")
                 # update the column names to reflect the user made changes
                 old_columns = data.columns[1:]  # don't select the x column
                 new_columns = [val.get() for val in self.filename_labels.values()]

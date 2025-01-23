@@ -40,6 +40,10 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
                                                        variable=self.data_container.inputs["ReferenceLineState"])
         self.inputs["ReferenceLine"].grid(row=0, column=6, sticky='nsew')
 
+        self.inputs["ErrorBars"] = ttk.Checkbutton(parent, text="Error Bars (Statistical)",
+                                            variable=self.data_container.inputs["ErrorBarsState"])
+        self.inputs["ErrorBars"].grid(row=0, column=7, sticky='nsew')
+
     def refresh(self, *args):
         try:
             self.update_dropdown()
@@ -51,7 +55,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
             # to pop up multiple times each click
             if not self.showed_no_data_warning:
                 self.showed_no_data_warning = True
-                tk.messagebox.showerror("Error", "Please load data first")
+                tk.messagebox.showerror("Error", "Please load data first and/or, when folding data, ensure that peaks are shifted")
 
         # store the parameters that were used for this instance.
         self.data_container.check_boxes["fold"] = self.data_container.inputs["FoldingState"].get()
@@ -94,7 +98,7 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
             pass
 
         ref = self.data_container.get('key', sample=str(self.data_container.reference.get()))  # gets the key for the reference
-        df = self.data_container.calc_ratio_curves(ref, window_size=int(self.data_container.inputs["Smoothing"].get()),
+        df, df_unc = self.data_container.calc_ratio_curves(ref, window_size=int(self.data_container.inputs["Smoothing"].get()),
                                                    folding=self.data_container.inputs["FoldingState"].get(),
                                                    shift=self.data_container.inputs["ShiftingState"].get(),
                                                    drop_ref=self.data_container.inputs["ReferenceLineState"].get(),
@@ -108,8 +112,13 @@ class RatioCurvesPlot(p.PlotWindow, tk.Frame):
                 #     color = None
                 # else:
                 #     color = self.data_container.color[col].get()
-                self.ax.plot(df['x'], df[col], label=self.data_container.get('label', col), linewidth=p.LINE_WIDTH,
+                if self.data_container.inputs["ErrorBarsState"].get():
+                    self.ax.errorbar(df['x'], df[col], df_unc[col], label=self.data_container.get('label', col), linewidth=p.LINE_WIDTH,
+                                 color=self.data_container.color[col].get())
+                else:
+                    self.ax.plot(df['x'], df[col], label=self.data_container.get('label', col), linewidth=p.LINE_WIDTH,
                              color=self.data_container.color[col].get())
+
         if self.fold_value_changed:
             names = ('ymin', 'ymax', 'xmin', 'xmax')
             if self.data_container.inputs["FoldingState"].get():

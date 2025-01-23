@@ -23,6 +23,7 @@ class DoTheMathStoreTheData:
         self.C_norms = {}  # Store the normalizing constants
         self.filename_labels = {}  # placeholder for the short labels for each data set
         self.ratio_curves = ''  # current form of the ratio curves will be stored here as a pandas dataframe
+        self.ratio_curves_unc = pd.DataFrame()  # Store the uncertainty of the ratio curves
         self.S_curve_data = pd.DataFrame()  # Store the analyzed S curves
         self.S_curve_unc = pd.DataFrame() # Store the uncertainty of the S curves # .
         self.SW = pd.DataFrame()
@@ -90,6 +91,9 @@ class DoTheMathStoreTheData:
 
         elif name == "ratio curves":
             return self.ratio_curves
+
+        elif name == "ratio curve uncertainty":
+            return self.ratio_curves_unc
 
         elif name == "parameters":
             return self.parameters
@@ -222,9 +226,19 @@ class DoTheMathStoreTheData:
             self.S_curve_data = data  # . Used to be called "sw_param_data"
 
         elif name == "s curve uncertainty":  # . Added this
-            if s_curve_unc is None:
+            if data is None:
                 tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
-            self.S_curve_unc = s_curve_unc
+            self.S_curve_unc = data
+
+        elif name == "ratio curves":
+            if data is None:
+                tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
+            self.ratio_curves = data
+
+        elif name == "ratio curve uncertainty":  # . Added this
+            if data is None:
+                tk.messagebox.showerror('Error', "Missing information in set function: "+str(name))
+            self.ratio_curves_unc = data
 
         elif name == "reference":
             self.reference.set(key)
@@ -376,13 +390,28 @@ class DoTheMathStoreTheData:
             # send back to df
             df = self.from_dict_to_df(folded_data)
 
+        # . Calculate uncertainty
+        df_unc = df.copy()
+        # Assume that all previous changes were merely shifts on the x-axis, which don't affect the uncertainty, and/
+        # or summations, which affect N but still means N_unc = sqrt(N).
+        # Uncertainty of reference data: Sqrt(N)/C = (N/C^2)^(1/2) = ((df=N/C)/C).sqrt
+        df_ref_unc = (df[ref_key] / self.C_norms[ref_key]).map(np.sqrt)
+        for col in df_unc.columns[1:]:
+            # Unc = Sqrt(N)/C = (N/C^2)^(1/2) = ((df=N/C)/C).sqrt
+            df_unc[col] = (df[col] / self.C_norms[col]).map(np.sqrt)
+            # Propagate uncertainty through the ratio N_data/N_ref
+            df_unc[col] = ((df[col]/df[ref_key]) *
+                           ((df_unc[col] * df_unc[col])/(df[col] * df[col]) +
+                            (df_ref_unc * df_ref_unc)/(df[ref_key] * df[ref_key])).map(np.sqrt))
+
         # calculate the ratio curves
         df = self.apply_reference(df, ref_key, drop_ref=drop_ref)
 
         # store the result
         self.ratio_curves = df
+        self.ratio_curves_unc = df_unc
 
-        return df
+        return df, df_unc
 
     def shift_data_to_match_peaks(self, df, folding=False):
         """ pass in a data frame that has gone through lineupdata()"""

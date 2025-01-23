@@ -46,9 +46,9 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
         logscale_checkbox = ttk.Checkbutton(parent, text="Linear Scale",
                                             variable=self.data_container.inputs["LogscaleState"])
         logscale_checkbox.grid(row=0, column=5, sticky='nsew')
-        errorbar_checkbox = ttk.Checkbutton(parent, text="Error Bars (Statistical)",
+        self.inputs["ErrorBars"] = ttk.Checkbutton(parent, text="Error Bars (Statistical)",
                                             variable=self.data_container.inputs["ErrorBarsState"])
-        errorbar_checkbox.grid(row=0, column=6, sticky='nsew')
+        self.inputs["ErrorBars"].grid(row=0, column=6, sticky='nsew')
 
     def create_sw_parameter_inputs(self):
         subframe2 = tk.LabelFrame(self, text="S and W parameter regions of interest (ROI) limits (keV)",
@@ -143,7 +143,7 @@ class SWParameterForm(p.PlotWindow): #, tk.Frame):
 
         # store the S curve data # . and S curve uncertainty data # . used to be called "placeholder data"
         self.data_container.set("s curves", data=df)
-        self.data_container.set("s curve uncertainty", s_curve_unc=df_unc)
+        self.data_container.set("s curve uncertainty", data=df_unc)
 
         # draw the lines for the sw parameters here
         [self.ax.vlines(val, self.ymin, self.ymax, linewidth=p.LINE_WIDTH) for val in self.params.values()]
