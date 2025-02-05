@@ -60,4 +60,18 @@ Issues have also been had with getting the Anaconda version to work with macOS.
 
 Bugs
 ====
-(In progress)
+* Exported S and W parameters don't account for changes made, such as peak shift or data smoothing
+
+  * The S and W parameters in the S and W parameter graph do account for user input
+
+* 'interp2d' function has been removed in SciPy 1.14.0
+
+  * To avoid this bug, do one of the following:
+
+    * Use an earlier version of SciPy 
+
+    * Download python files for CDB-AP from the GitHub branch "CDB_Analysis_Program_with_Time_Dependence"
+
+    * Download and install the executable "Install CDB-AP v1.0.0 (Windows).exe" from the GitHub branch "CDB_Analysis_Program_with_Time_Dependence"
+
+* (In progress)
